@@ -1,0 +1,4 @@
+include README.md LICENSE contributors.txt
+recursive-include bi2d *.py
+exclude *.pyc
+exclude *__pycache__
