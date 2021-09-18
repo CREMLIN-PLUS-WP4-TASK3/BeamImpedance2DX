@@ -5,7 +5,7 @@ import numpy as np
 from mpi4py import MPI
 
 
-class Material (object):
+class Material():
     """Material properties"""
     def __init__(self, index, name=None, eps=1, kappa=1, nu=(1, 0)):
         if not isinstance(index, int) or index < 1:
@@ -39,10 +39,10 @@ kappa={self.kappa},\
 nu=({self.nu_re}, {self.nu_im})]"""
 
 
-class MaterialMap (object):
+class MaterialMap():
     """Map material properties to mesh"""
 
-    def __init__(self, mesh, materials, f=1e5):
+    def __init__(self, mesh, materials, f=1e5, beam_subdomain_index=1):
         self.f = f
         self._f_previous = f
         self.mesh = mesh
@@ -59,15 +59,22 @@ class MaterialMap (object):
 
         self.materials = [m for m in materials if m.index in material_indices]
 
-        Q = dolfinx.FunctionSpace(mesh.mesh, ("Discontinuous Lagrange", 0))
+        functionSpace = dolfinx.FunctionSpace(mesh.mesh, ("Discontinuous Lagrange", 0))
+        self.beam = dolfinx.Function(functionSpace)
+        self.beam.name = "beam"
+        with self.beam.vector.localForm() as loc:
+            cells = mesh.subdomains.indices[mesh.subdomains.values == beam_subdomain_index]
+            loc.setValues(cells, np.full(len(cells), 1))
+            cells = mesh.subdomains.indices[mesh.subdomains.values != beam_subdomain_index]
+            loc.setValues(cells, np.full(len(cells), 0))
 
         for n in ["eps", "kappa", "nu_re"]:
-            setattr(self, n, dolfinx.Function(Q))
+            setattr(self, n, dolfinx.Function(functionSpace))
             getattr(self, n).name = n
             self.update_field(n)
 
         if not np.all([m.real_nu for m in self.materials]):
-            self.nu_im = dolfinx.Function(Q)
+            self.nu_im = dolfinx.Function(functionSpace)
             self.nu_im.name = "nu_im"
             self.update_field("nu_im")
         else:
@@ -117,7 +124,7 @@ class MaterialMap (object):
         """Save material fields to XDMF file"""
         with dolfinx.io.XDMFFile(MPI.COMM_WORLD, field_file, "w") as xdmf:
             self.mesh.xdmf_write_mesh(xdmf)
-            for n in ["eps", "kappa", "nu_re"]:
+            for n in ["eps", "kappa", "nu_re", "beam"]:
                 self.xdmf_write_field(xdmf, n)
             if self.nu_im is not None:
                 self.xdmf_write_field(xdmf, "nu_im")
@@ -135,4 +142,3 @@ class MaterialMap (object):
         # # f.interpolate(lambda x: (x[0]**2, x[1]*2))
         # f.interpolate(lambda x: x[0] + 5*x[1])
         # dolfinx.cpp.la.scatter_forward(f.x)
-

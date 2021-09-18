@@ -21,14 +21,15 @@ def convert_msh(input_file: str, output_file: str) -> None:
                            cell_data={"regions": [cell_data]})
     meshio.write(output_file, out_mesh, file_format="xdmf")
 
-class Mesh (object):
+class Mesh():
     """Class holding mesh and subdomains information"""
 
     def __init__(self, mesh_file: str):
         with dolfinx.io.XDMFFile(MPI.COMM_WORLD, mesh_file, "r") as xdmf:
             self.mesh = xdmf.read_mesh(name="Grid")
             self.subdomains = xdmf.read_meshtags(self.mesh, name="Grid")
-            self.mesh.topology.create_connectivity(self.mesh.topology.dim, self.mesh.topology.dim-1)
+            # self.mesh.topology.create_connectivity(self.mesh.topology.dim, self.mesh.topology.dim-1)
+            self.mesh.topology.create_connectivity(self.mesh.topology.dim-1, self.mesh.topology.dim)
 
     def save(self, mesh_file: str):
         """Save mesh to XDMF file"""

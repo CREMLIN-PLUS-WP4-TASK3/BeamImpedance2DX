@@ -1,157 +1,103 @@
 #!/usr/bin/env python3
 
 import bi2d
-# from multipledispatch import dispatch
-# import dolfinx
-# from mpi4py import MPI
-
-# from inspect import signature
+import dolfinx
+import ufl
+from mpi4py import MPI
 
 
 m1 = bi2d.Material(1, eps=lambda x, y: 1+(x**2 - 2*y))
-# print(m1)
 m2 = bi2d.Material(2, eps=0.1, kappa=lambda x, y, f: f/1e5)
 
 bi2d.convert_msh("test.msh", "test.xdmf")
 m = bi2d.Mesh("test.xdmf")
-# print(m.get_bounds(1))
-# print(m.get_bounds(2))
 
 mc = bi2d.MaterialMap(m, [m1, m2])
 mc.save("material.xdmf")
-mc.update()
-mc.save("material2.xdmf")
-mc.f=2e5
-mc.update()
-mc.save("material3.xdmf")
-mc.update()
-mc.save("material4.xdmf")
+s = bi2d.Solution(mc)
+j = bi2d.Js(s)
+j.solve()
+j.save("current.xdmf")
 
 
-# Q = dolfinx.FunctionSpace(m.mesh, ("Discontinuous Lagrange", 0))
-# f = dolfinx.Function(Q)
-# with f.vector.localForm() as loc:
-#     help(loc)
-
-# 1
-
-# import inspect
-
-# def a(b,c=1,d=1):
-#     print(inspect.getargvalues(inspect.currentframe()))
+H1= dolfinx.FunctionSpace(mc.mesh.mesh, ("Lagrange", 1))
+u_, v_ = ufl.TrialFunction(H1), ufl.TestFunction(H1)
+dx = ufl.Measure('dx', domain=mc.mesh.mesh, subdomain_id=0)
+a_p = ufl.inner(u_, v_) * dx
+L_p = v_ * dx
+projection = dolfinx.fem.LinearProblem(a_p, L_p)
+f = projection.solve()
+self.f.name = "current"
 
 
-# inspect.getargspec(a)
-
-# a(1,2,3)
-
-# 1
-
-# m.mesh.ufl_cell().num_vertices()
-# m.subdomains.values.shape
-# m.mesh
-# help(m.subdomains)
-# help(m.mesh.geometry)
-# m.mesh.geometry.dofmap
-# m.mesh.geometry.x.shape
-# help(m.mesh.geometry.dofmap)
-
-# import numpy as np
-
-# np.max(m.mesh.geometry.dofmap.array)
-# np.min(m.mesh.geometry.dofmap.array)
-# m.mesh.geometry.dofmap.num_nodes
-# m.mesh.geometry.dofmap.links(1)
-# m.mesh.geometry.dofmap
-# m.mesh.geometry.dofmap.links(3801)
-
-# [m.mesh.geometry.dofmap.links(i) for i in m.subdomains.indices[m.subdomains.values == 1]]
-# np.array([m.mesh.geometry.dofmap.links(i) for i in m.subdomains.indices[m.subdomains.values == 1]]).flatten()
-# np.unique(np.array([m.mesh.geometry.dofmap.links(i) for i in m.subdomains.indices[m.subdomains.values == 1]]).flatten())
-# (np.array([m.mesh.geometry.dofmap.links(i) for i in m.subdomains.indices[m.subdomains.values == 1]]).flatten()).shape
-# ii = np.unique(np.array([m.mesh.geometry.dofmap.links(i) for i in m.subdomains.indices[m.subdomains.values == 1]]).flatten())
-
-# m.mesh.geometry.x[ii]
-# xx = m.mesh.geometry.x[ii]
-
-# minx = np.min(xx[:,0])
-# maxx = np.max(xx[:,0])
-# sumx = np.sum(xx[:,0])/xx[:,0].size
-# miny = np.min(xx[:,1])
-# maxy = np.max(xx[:,1])
-# sumy = np.sum(xx[:,1])/xx[:,1].size
-
-# minx
-# maxx
-# sumx
-# miny
-# maxy
-# sumy
-
-# m.subdomains.indices[m.subdomains.values == 1]
-# m.subdomains.values.shape
-
-# m.mesh.geometry.x.shape
-
-# dolfinx.cpp.mesh.midpoints(m.mesh, 0, np.array([0]))
-
-# help(m.mesh.geometry.dofmap)
-
- # |  array
- # |  
- # |  num_nodes
- # |  
- # |  offsets
+dx = ufl.dx(domain=mesh.m)
 
 
+H1 = dolfinx.FunctionSpace(m.mesh, ("Lagrange",1))    #Space for the Potential
 
-# m1 = bi2d.Material(1, eps=1)
-# m2 = bi2d.Material(2, eps=1)
+import numpy
+boundary_facets = numpy.where(numpy.array(dolfinx.cpp.mesh.compute_boundary_facets(m.mesh.topology)))[0]
+boundary_dofs = dolfinx.fem.locate_dofs_topological(V, fdim, boundary_facets)
 
-# b = bi2d.MaterialCreator(m, m1, m2)
+u_re, v_re = ufl.TrialFunction(H1), ufl.TestFunction(H1)
+u_im, v_im = ufl.TrialFunction(H1), ufl.TestFunction(H1)
 
+# Phi=Function(Mix)
+# Phir=Function(H1)
+# Phii=Function(H1)
 
-# import numpy as np
-
-# help(m.mesh.geometry)
-# print(np.array(m.mesh.geometry.index_map().global_indices()).shape)
-# help(m.mesh.topology)
-# print(m.subdomains.values.shape)
-# print(m.mesh.geometry.x.shape)
-# print(m.mesh.geometry.x[m.subdomains.indices[m.subdomains.values == 1]])
-# print(m.mesh.geometry.x)
-
-# Q = dolfinx.VectorFunctionSpace(m.mesh, ("Discontinuous Lagrange", 1))
-# Q = dolfinx.FunctionSpace(m.mesh, ("Discontinuous Lagrange", 0))
-# f = dolfinx.Function(Q)
-
-# f.interpolate(lambda x: (x[0]**2, x[1]*2))
-# f.interpolate(lambda x: x[0] + 5*x[1])
-# dolfinx.cpp.la.scatter_forward(f.x)
-# with dolfinx.io.XDMFFile(MPI.COMM_WORLD, "out.xdmf", "w") as xdmf:
-#     m.xdmf_write_mesh(xdmf)
-#     xdmf.write_function(f)
+from ufl import inner, grad, dx
 
 
-# def a(a):
-#     return 2*a
+a_re = inner(grad(v_re),mc.eps*grad(u_re))*dx +inner(grad(v_re),grad(u_im))*dx
 
-# len(signature(a).parameters)
+ufl.grad(v_re)
 
-# def a(a, b):
-#     return 2*a + b
+1
 
-# class A():
-#     def __init__(self, f):
-#         self.f = f
+# #The stiffness matrices
+# ar=inner(grad(vr),epsilon*grad(ur))*dx +inner(grad(vr),(kappa/omega)*grad(ui))*dx
+# ai=inner(grad(vi),epsilon*grad(ui))*dx -inner(grad(vi),(kappa/omega)*grad(ur))*dx
 
-#     def do(self, *args):
-#         return self.f(*args)
+# #The mass matrices
+# br=(omega/(beta*c0))**2 * (inner(vr,epsilon*ur)*dx +inner(vr,(kappa/omega)*ui)*dx )
+# bi=(omega/(beta*c0))**2 * (inner(vi,epsilon*ui)*dx -inner(vi,(kappa/omega)*ur)*dx )
 
-# b = A(a)
+# #The right hand side
+# RHSr=1/(beta*c0) *vr*Jszr*dx
+# RHSi=1/(beta*c0) *vi*Jszi*dx
 
-# print(b.do(1))
-# print(b.do(1,2))
+# eq= ar+ai +br+bi==RHSr+RHSi
 
-# print(a(1))
-# print(a(1,2))
+
+# Zero = Expression(('0.0','0.0'))
+# def u0_boundary(x, on_boundary):    # returns boolean if x on boundary
+#     return on_boundary
+
+# BC=DirichletBC(Mix, Zero, u0_boundary)
+
+
+# set_log_level(PROGRESS)
+# solve(eq, Phi,BC,solver_parameters={"linear_solver": "mumps","preconditioner": "none"})
+# #solve(eq, Phi,BC,solver_parameters={"linear_solver": "gmres","preconditioner": "sor"})
+# #solve(eq, Phi,BC,solver_parameters={"linear_solver": "lu","preconditioner": "none"})
+# (Phir,Phii)=Phi.split(deepcopy=False)
+
+# if(plot3Dflag):
+#     plot(Phir,title='Phir')
+#     plot(Phii,title='Phii')
+#     interactive()
+
+# return [Phir,Phii]
+
+# H1= dolfinx.FunctionSpace(mc.mesh.mesh, ("Lagrange", 1))
+# f = dolfinx.Function(H1)
+# u_, v_ = ufl.TrialFunction(H1), ufl.TestFunction(H1)
+# c = dolfinx.Constant(m.mesh, 2)
+# a_p = ufl.inner(u_, v_) * ufl.dx
+# L_p = mc.beam * v_ * ufl.dx
+# projection = dolfinx.fem.LinearProblem(a_p, L_p)
+# ff = projection.solve()
+# with dolfinx.io.XDMFFile(MPI.COMM_WORLD, "field.xdmf", "w") as xdmf:
+#     xdmf.write_mesh(mc.mesh.mesh)
+#     xdmf.write_function(ff)
