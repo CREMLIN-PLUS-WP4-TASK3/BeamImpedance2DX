@@ -119,7 +119,7 @@ $$\nabla\Phi=
 \nabla_\perp\Phi\vec{n}-j\frac{\omega}{\beta c_0}\Phi\vec{e}_{z}
 $$
 
-Material properties are defined in the mesh vertices, where they are constant.
+Material properties are constant across elements.
 So, in the calculations they are handled as if they were constant.
 
 $$-\varepsilon_0\varepsilon_r\nabla\cdot
@@ -133,15 +133,19 @@ $$-\varepsilon_0\varepsilon_r\nabla\cdot\nabla_\perp\Phi\vec{n}
 +\frac{\sigma}{\beta c_0}\nabla\Phi\vec{e}_{z}
 =\frac{1}{\beta c_0}J_s$$
 
-$$-\varepsilon_0\varepsilon_r\nabla_\perp\cdot\nabla_\perp\Phi\vec{n}
+$$
+\begin{align}
+&-\varepsilon_0\varepsilon_r\nabla_\perp\cdot\nabla_\perp\Phi\vec{n}
 -\varepsilon_0\varepsilon_r\frac{\partial}{\partial z}\nabla_\perp\Phi\vec{n}\vec{e}_{z}
 +j\frac{\omega\varepsilon_0\varepsilon_r}{\beta c_0}\nabla_\perp\Phi\vec{e}_{z}\vec{n}
 +\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\Phi\vec{e}_{z}
-+j\frac{\sigma}{\omega}\nabla_\perp\cdot\nabla_\perp\Phi\vec{n}
++\\&+j\frac{\sigma}{\omega}\nabla_\perp\cdot\nabla_\perp\Phi\vec{n}
 +j\frac{\sigma}{\omega}\frac{\partial}{\partial z}\nabla_\perp\Phi\vec{n}\vec{e}_{z}
 +\frac{\sigma}{\beta c_0}\nabla_\perp\Phi\vec{e}_{z}\vec{n}
 -j\frac{\omega\sigma}{\beta^2 c_0^2}\Phi\vec{e}_{z}
-=\frac{1}{\beta c_0}J_s$$
+=\frac{1}{\beta c_0}J_s
+\end{align}
+$$
 
 $\vec{n}$ and $\vec{e}_{z}$ are orthogonal, so their product $\vec{n} \vec{e}_{z} = 0$.
 
@@ -153,21 +157,29 @@ $$-\varepsilon_0\varepsilon_r\nabla_\perp\cdot\nabla_\perp\Phi\vec{n}
 
 Split $\underline{\Phi}$ into real and imaginary parts.
 
-$$-\varepsilon_0\varepsilon_r\nabla_\perp\cdot\nabla_\perp\left(\Phi^\Re+j\Phi^\Im\right)\vec{n}
+$$
+\begin{align}
+&-\varepsilon_0\varepsilon_r\nabla_\perp\cdot\nabla_\perp\left(\Phi^\Re+j\Phi^\Im\right)\vec{n}
 +\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\left(\Phi^\Re+j\Phi^\Im\right)\vec{e}_{z}
-+j\frac{\sigma}{\omega}\nabla_\perp\cdot\nabla_\perp\left(\Phi^\Re+j\Phi^\Im\right)\vec{n}
++\\&+j\frac{\sigma}{\omega}\nabla_\perp\cdot\nabla_\perp\left(\Phi^\Re+j\Phi^\Im\right)\vec{n}
 -j\frac{\omega\sigma}{\beta^2 c_0^2}\left(\Phi^\Re+j\Phi^\Im\right)\vec{e}_{z}
-=\frac{1}{\beta c_0}J_s$$
+=\frac{1}{\beta c_0}J_s
+\end{align}
+$$
 
-$$-\varepsilon_0\varepsilon_r\nabla_\perp\cdot\nabla_\perp\Phi^\Re\vec{n}
+$$
+\begin{align}
+&-\varepsilon_0\varepsilon_r\nabla_\perp\cdot\nabla_\perp\Phi^\Re\vec{n}
 -j\varepsilon_0\varepsilon_r\nabla_\perp\cdot\nabla_\perp\Phi^\Im\vec{n}
 +\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\Phi^\Re\vec{e}_{z}
 +j\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\Phi^\Im\vec{e}_{z}
-+j\frac{\sigma}{\omega}\nabla_\perp\cdot\nabla_\perp\Phi^\Re\vec{n}
++\\&+j\frac{\sigma}{\omega}\nabla_\perp\cdot\nabla_\perp\Phi^\Re\vec{n}
 -\frac{\sigma}{\omega}\nabla_\perp\cdot\nabla_\perp\Phi^\Im\vec{n}
 -j\frac{\omega\sigma}{\beta^2 c_0^2}\Phi^\Re\vec{e}_{z}
 +\frac{\omega\sigma}{\beta^2 c_0^2}\Phi^\Im\vec{e}_{z}
-=\frac{1}{\beta c_0}J_s$$
+=\frac{1}{\beta c_0}J_s
+\end{align}
+$$
 
 $$\begin{cases}
 \Re\left\{
@@ -175,6 +187,9 @@ $$\begin{cases}
 -j\varepsilon_0\varepsilon_r\nabla_\perp\cdot\nabla_\perp\Phi^\Im\vec{n}
 +\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\Phi^\Re\vec{e}_{z}
 +j\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\Phi^\Im\vec{e}_{z}
++\right.
+\\
+\left.
 +j\frac{\sigma}{\omega}\nabla_\perp\cdot\nabla_\perp\Phi^\Re\vec{n}
 -\frac{\sigma}{\omega}\nabla_\perp\cdot\nabla_\perp\Phi^\Im\vec{n}
 -j\frac{\omega\sigma}{\beta^2 c_0^2}\Phi^\Re\vec{e}_{z}
@@ -188,6 +203,9 @@ $$\begin{cases}
 -j\varepsilon_0\varepsilon_r\nabla_\perp\cdot\nabla_\perp\Phi^\Im\vec{n}
 +\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\Phi^\Re\vec{e}_{z}
 +j\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\Phi^\Im\vec{e}_{z}
++\right.
+\\
+\left.
 +j\frac{\sigma}{\omega}\nabla_\perp\cdot\nabla_\perp\Phi^\Re\vec{n}
 -\frac{\sigma}{\omega}\nabla_\perp\cdot\nabla_\perp\Phi^\Im\vec{n}
 -j\frac{\omega\sigma}{\beta^2 c_0^2}\Phi^\Re\vec{e}_{z}
@@ -267,17 +285,34 @@ equation looks like this
 
 $$
 \begin{align}
-\varepsilon_0\varepsilon_r\int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Re \;d\Omega}
-&+\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\int_\Omega{v^\Re\Phi^\Re \;d\Omega}+
+&\varepsilon_0\varepsilon_r\int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Re \;d\Omega}
++\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\int_\Omega{v^\Re\Phi^\Re \;d\Omega}+
 \frac{\sigma}{\omega}\int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Im \;d\Omega}+\\
 &+\frac{\omega\sigma}{\beta^2 c_0^2}\int_\Omega{v^\Re\Phi^\Im \;d\Omega}+
 \varepsilon_0\varepsilon_r\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Im \;d\Omega}+
 \frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\int_\Omega{v^\Im\Phi^\Im \;d\Omega}-\\
 &-\frac{\sigma}{\omega}\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Re \;d\Omega}
--\frac{\omega\sigma}{\beta^2 c_0^2}\int_\Omega{v^\Im\Phi^\Im \;d\Omega} = \\
-&=\frac{1}{\beta c_0}\int_\Omega{v^\Re J_s \;d\Omega}
+-\frac{\omega\sigma}{\beta^2 c_0^2}\int_\Omega{v^\Im\Phi^\Im \;d\Omega}
+=\frac{1}{\beta c_0}\int_\Omega{v^\Re J_s \;d\Omega}
 \end{align}
 $$
+
+After multiplying both sides of the equation by $\beta c_0$ we get
+
+$$
+\begin{align}
+&\varepsilon_0\varepsilon_r\beta c_0\int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Re \;d\Omega}
++\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta c_0}\int_\Omega{v^\Re\Phi^\Re \;d\Omega}+
+\frac{\sigma\beta c_0}{\omega}\int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Im \;d\Omega}+\\
+&+\frac{\omega\sigma}{\beta c_0}\int_\Omega{v^\Re\Phi^\Im \;d\Omega}+
+\varepsilon_0\varepsilon_r\beta c_0\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Im \;d\Omega}+
+\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta c_0}\int_\Omega{v^\Im\Phi^\Im \;d\Omega}-\\
+&-\frac{\sigma\beta c_0}{\omega}\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Re \;d\Omega}
+-\frac{\omega\sigma}{\beta c_0}\int_\Omega{v^\Im\Phi^\Im \;d\Omega}
+=\int_\Omega{v^\Re J_s \;d\Omega}
+\end{align}
+$$
+
 
 After solving for potential we may get the irrotational part of electric field from the equations
 
@@ -1247,37 +1282,42 @@ $$
 \end{align}
 $$
 
-Writing whole curl equation in matrix form (Uwe:36)
+Writing whole equation in matrix form (Uwe:36)
 $$
-[S_{curlcurl}+M_{\varepsilon}+M_{SIBC}] E_{curl}=r
+[S_{curlcurl}+M_{\varepsilon}+M_{SIBC}] E_{curl}=
+[N_{\varepsilon}] + [J_s]
 $$
 
 $S_{curlcurl}$ term is equal to the $\hat{H}$ minus the boundary integrals.
 $M_{SIBC}$ contains all the boundary integrals from the $\hat{H}$.
 
-$M_{\varepsilon}$ is the term $-\omega^2\varepsilon_0\underline{\varepsilon}_r\vec{\underline{E}}_{curl}$ written
-in weak from.
-Let's write it down.
+$M_{\varepsilon}$ and $N_{\varepsilon}$ are terms $\omega^2\underline{\varepsilon}\vec{\underline{E}}_{curl}$
+and $\omega^2\underline{\varepsilon}\vec{\underline{E}}_{div}$
+written in weak from.
+
+Let's split these terms in real/imaginary and longitudinal and transverse parts
 
 $$
 \begin{align}
--\omega^2\varepsilon_0\underline{\varepsilon}_r\vec{\underline{E}}_{curl}
-&=-\omega^2\varepsilon_0\varepsilon_r\vec{\underline{E}}_{curl}
--j\omega\sigma\vec{\underline{E}}_{curl} \\
-&=-\omega^2\varepsilon_0\varepsilon_r\vec{\underline{E}}_\perp
--\omega^2\varepsilon_0\varepsilon_r\underline{E}_z
--j\omega\sigma\vec{\underline{E}}_\perp
--j\omega\sigma\underline{E}_z \\
-&=-\omega^2\varepsilon_0\varepsilon_r\vec{E}^\Re_\perp
--j\omega^2\varepsilon_0\varepsilon_r\vec{E}^\Im_\perp
--\omega^2\varepsilon_0\varepsilon_r E_z^\Re
--j\omega^2\varepsilon_0\varepsilon_r E_z^\Im
--j\omega\sigma\vec{E}^\Re_\perp
-+\omega\sigma\vec{E}^\Im_\perp
--j\omega\sigma E_z^\Re
-+\omega\sigma E_z^\Im
+\omega^2\varepsilon_0\underline{\varepsilon}_r\vec{\underline{E}}
+&=\omega^2\varepsilon_0\varepsilon_r\vec{\underline{E}}
++j\omega\sigma\vec{\underline{E}} \\
+&=\omega^2\varepsilon_0\varepsilon_r\vec{\underline{E}}_\perp
++\omega^2\varepsilon_0\varepsilon_r\underline{E}_z
++j\omega\sigma\vec{\underline{E}}_\perp
++j\omega\sigma\underline{E}_z \\
+&=\omega^2\varepsilon_0\varepsilon_r\vec{E}^\Re_\perp
++j\omega^2\varepsilon_0\varepsilon_r\vec{E}^\Im_\perp
++\omega^2\varepsilon_0\varepsilon_r E_z^\Re
++j\omega^2\varepsilon_0\varepsilon_r E_z^\Im
++j\omega\sigma\vec{E}^\Re_\perp
+-\omega\sigma\vec{E}^\Im_\perp
++j\omega\sigma E_z^\Re
+-\omega\sigma E_z^\Im
 \end{align}
 $$
+
+$J_s$ is a source term
 
 
 The whole matrix is (Uwe:37-40)
@@ -1330,8 +1370,10 @@ B^{\Re\Im}_{zz} &
 B^{\Im\Im}_{zz} \\
 \end{pmatrix}
 \right]
-E_{curl}=r
+E_{curl}=R
 $$
+
+$E_{curl}$ terms
 
 <!-- 1 -->
 $$
@@ -1520,7 +1562,7 @@ $$
 
 <!-- 9 -->
 $$
-S^{\Re\Re}_{\perp z}
+B^{\Re\Re}_{\perp z}
 =\int_{\partial\Omega}{v^\Re\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Re_\perp\vec{\tau}\;dS}
 $$
 
@@ -1566,8 +1608,98 @@ B^{\Im\Im}_{z z}
 =-\int_{\partial\Omega}{v^\Im\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Im\right)\vec{\tau}\;dS}
 $$
 
+$E_{div}$ terms
+
+<!-- 1 -->
+$$
+N^{\Re\Re}_{\varepsilon\perp}=
+\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{\vec{w}^\Re\vec{E}^\Re_\perp\;d\Omega}
+$$
+
+<!-- 2 -->
+$$
+N^{\Im\Re}_{\sigma\perp}=
+-\omega\sigma\int_{\Omega}{\vec{w}^\Re\vec{E}^\Im_\perp\;d\Omega}
+$$
+
+<!-- 5 -->
+$$
+N^{\Re\Im}_{\sigma\perp}=
+\omega\sigma\int_{\Omega}{\vec{w}^\Im\vec{E}^\Re_\perp\;d\Omega}
+$$
+
+<!-- 6 -->
+$$
+N^{\Im\Im}_{\varepsilon\perp}=
+\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{\vec{w}^\Im\vec{E}^\Im_\perp\;d\Omega}
+$$
+
+<!-- 11 -->
+$$
+N^{\Re\Re}_{\varepsilon z}=
+\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{v^\Re E^\Re_z\;d\Omega}
+$$
+
+<!-- 12 -->
+$$
+N^{\Im\Re}_{\sigma z}=
+-\omega\sigma\int_{\Omega}{v^\Re E^\Im_z\;d\Omega}
+$$
+
+<!-- 15 -->
+$$
+N^{\Re\Im}_{\sigma z}=
+\omega\sigma\int_{\Omega}{v^\Im E^\Re_z\;d\Omega}
+$$
+
+<!-- 16 -->
+$$
+N^{\Im\Im}_{\varepsilon z}=
+\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{v^\Im E^\Im_z\;d\Omega}
+$$
+
+$J_{s}$ term
+
+$$
+J_s^\Im =
+-\omega\int_{\Omega}{v^\Im J_s\;d\Omega}
+$$
+
 Now we have all the equations to obtain $\vec{\underline{E}}=\vec{\underline{E}}_{curl}+\vec{\underline{E}}_{div}$ for
 the chosen source function $J_{S}$.
 These can be inserted into the equations for impedance (Uwe:4-6)
-$$\underline{Z}_\parallel(\omega) = -\frac{1}{q^2}\int_{beam}{\vec{\underline{E}}\vec{\underline{J}}^{*}_\parallel\;dV}$$
-$$\underline{Z}_\perp(\omega) = -\frac{\beta c}{(q d_r)^2\omega}\int_{beam}{\vec{\underline{E}}\vec{\underline{J}}^{*}_\perp\;dV}$$
+$$\begin{align}\underline{Z}_\parallel(\omega)
+&=-\frac{1}{q^2}\int_{beam}{\vec{\underline{E}}\vec{\underline{J}}^{*}_\parallel\;dV} \\
+&=-\frac{1}{q^2}\int_{beam}{\left(\vec{E}^\Re + j\vec{E}^\Im\right)
+\left(\vec{J}_\parallel^\Re-j\vec{J}_\parallel^\Im\right)\;dV} \\
+&=-\frac{1}{q^2}\left(
+\int_{beam}{\vec{E}^\Re \vec{J}_\parallel^\Re\;dV}
+-j\int_{beam}{\vec{E}^\Re \vec{J}_\parallel^\Im\;dV}
++j\int_{beam}{\vec{E}^\Im \vec{J}_\parallel^\Re\;dV}
++\int_{beam}{\vec{E}^\Im \vec{J}_\parallel^\Im\;dV}
+\right)
+\end{align}$$
+
+For the purely real source function $\vec{J}$ and a step function
+$$
+\delta=
+\begin{cases}
+1 \quad (x,y)\in\Omega_{beam} \\
+0 \quad (x,y)\notin\Omega_{beam}
+\end{cases}
+$$
+$$\underline{Z}_\parallel(\omega)
+=-\frac{1}{q^2}\left(
+\int_{\Omega}{\vec{E}^\Re \vec{J}_\parallel^\Re \delta \;d\Omega}
++j\int_{\Omega}{\vec{E}^\Im \vec{J}_\parallel^\Re \delta \;d\Omega}
+\right)$$
+
+Similarly
+$$\begin{align}
+\underline{Z}_\perp(\omega)
+&=-\frac{\beta c}{(q d_r)^2\omega}\int_{beam}{\vec{\underline{E}}\vec{\underline{J}}^{*}_\perp\;dV} \\
+&=-\frac{\beta c}{(q d_r)^2\omega}\left(
+\int_{\Omega}{\vec{E}^\Re \vec{J}_\perp^\Re \delta \;d\Omega}
++j\int_{\Omega}{\vec{E}^\Im \vec{J}_\perp^\Re \delta \;d\Omega}
+\right)
+\end{align}$$
