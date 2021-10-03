@@ -325,7 +325,7 @@ $$E_{div\,z}^\Im = \frac{\omega}{\beta c_0}\Phi^\Re$$
 
 Orienting coordinate system so that section slice is placed on XY plane.
 Z axis is oriented according to the right hand rule.
-Enclosing surface normal is opposite to Z axis.
+Enclosing surface normal is opposite to Z axis ($\vec{e} = -\vec{n}$).
 Section boundary normal points inward, boundary tangential vector is oriented clockwise relative to
 the enclosing surface normal direction.
 

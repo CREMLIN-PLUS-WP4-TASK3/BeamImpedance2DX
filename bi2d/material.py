@@ -27,7 +27,7 @@ class Material():
                not (type(value).__name__ == "function" and
                     (len(signature(value).parameters) == 2 or
                      len(signature(value).parameters) == 3)):
-                raise(ValueError(f"""Invalid value of argument {n}. \
+                raise(AttributeError(f"""Invalid value of argument {n}. \
 Should be a number or a function with signature [freq:float] -> val:float or \
 [x:float, y:float] -> val:float or [x:float, y:float, freq:float] -> val:float"""))
             setattr(self, n, value)
@@ -38,7 +38,7 @@ Should be a number or a function with signature [freq:float] -> val:float or \
         self.real_eps = sigma == 0
 
     def __str__(self):
-        """Print representation."""
+        """String representation."""
         return f"""Material({self.name})[index={self.index},\
 eps_r={self.eps_r},\
 sigma={self.sigma},\

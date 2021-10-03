@@ -5,6 +5,7 @@ import dolfinx
 import ufl
 from ufl import inner, dx
 import numpy as np
+from petsc4py import PETSc
 
 
 class BoundaryType(Enum):
@@ -16,14 +17,6 @@ class BoundaryType(Enum):
 
 class Ecurl():
     """Solenoidal electric field solver."""
-
-    def __init__(self, solution, boundary_index=None, boundary_type=BoundaryType.DIRICHLET):
-        """Initialize."""
-        self.material_map = solution.material_map
-        self.mesh = solution.mesh
-        self.solution = solution
-        self.boundary_index = boundary_index
-        self.boundary_type = boundary_type
 
     def __set_bc(self, V, value=0):
         u_bc = dolfinx.Function(V)
@@ -55,27 +48,32 @@ class Ecurl():
 
     def Z(self, vec):
         """Set Z matrix."""
-        rx = self.omega_v * vec[1]
-        ry = -self.omega_v * vec[0]
+        rx = self._omega_v * vec[1]
+        ry = -self._omega_v * vec[0]
         return ufl.as_vector((rx, ry))
 
-    def solve(self):
-        """Solve equation."""
-        for name in ["Js", "Ediv_re_perp", "Ediv_im_perp", "Ediv_re_z", "Ediv_im_z"]:
+    def __init__(self, solution, boundary_index=None, boundary_type=BoundaryType.DIRICHLET):
+        """Initialize."""
+        self.material_map = solution.material_map
+        self.mesh = solution.mesh
+        self.solution = solution
+        self.boundary_index = boundary_index
+        self.boundary_type = boundary_type
+
+        for name in ["Js", "Ediv_perp_re", "Ediv_perp_im", "Ediv_z_re", "Ediv_z_im"]:
             attr = getattr(self.solution, name)
             if attr is None:
-                raise ValueError(f"Term {name} is not available")
+                raise AttributeError(f"Term {name} is not available")
 
         V = dolfinx.FunctionSpace(self.mesh.mesh, ufl.MixedElement(self.solution.Hcurl,
                                                                    self.solution.Hcurl,
                                                                    self.solution.H1,
                                                                    self.solution.H1))
 
-        # $$2\pi f$$
-        omega = 2 * np.pi * self.solution.f
+        omega = self.solution._omega
         # $$\frac{\omega}{\beta c_0}$$
-        omega_v = omega / (self.solution.beta * self.solution.c0)
-        self.omega_v = omega_v
+        omega_v = omega / (self.solution._beta * self.solution.c0)
+        self._omega_v = omega_v
         # $$\frac{\omega^2}{\beta^2 c_0^2}$$
         omega2_v2 = omega_v ** 2
         A = self.A
@@ -85,14 +83,12 @@ class Ecurl():
         nu_re = self.material_map.nu_re
         nu_im = self.material_map.nu_im
         # $$\omega^2 \varepsilon_0 \varepsilon_r$$
-        omega2_eps = dolfinx.Function(self.material_map.eps.function_space)
-        with self.material_map.eps.vector.localForm() as eps, omega2_eps.vector.localForm() as vec:
-            vec += omega**2 * eps
+        omega2_eps = omega**2 * self.material_map.eps
 
         Eperp_re, Eperp_im, Ez_re, Ez_im = ufl.TrialFunctions(V)
         w_re, w_im, v_re, v_im = ufl.TestFunctions(V)
 
-        a_p = 0
+        self._a_p = 0
 
         """
         1
@@ -103,8 +99,8 @@ class Ecurl():
         +\frac{\omega^2}{\beta^2 c_0^2}\int_\Omega{\vec{w}^\Re\nu^\Re\vec{E}^\Re_\perp\;d\Omega}
         $$
         """
-        a_p += inner(B(w_re), nu_re * B(Eperp_re)) * dx
-        a_p += omega2_v2 * inner(w_re, nu_re * Eperp_re) * dx
+        self._a_p += inner(B(w_re), nu_re * B(Eperp_re)) * dx
+        self._a_p += omega2_v2 * inner(w_re, nu_re * Eperp_re) * dx
 
         """
         4
@@ -113,7 +109,7 @@ class Ecurl():
         =-\int_\Omega{\vec{w}^\Re\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}\vec{E}^\Im_z\;d\Omega}
         $$
         """
-        a_p += -inner(w_re, Z(nu_re * A(Ez_im))) * dx
+        self._a_p += -inner(w_re, Z(nu_re * A(Ez_im))) * dx
 
         """
         6
@@ -124,8 +120,8 @@ class Ecurl():
         +\frac{\omega^2}{\beta^2 c_0^2}\int_\Omega{\vec{w}^\Im\nu^\Re\vec{E}^\Im_\perp\;d\Omega}
         $$
         """
-        a_p += inner(B(w_im), nu_re * B(Eperp_im)) * dx
-        a_p += omega2_v2 * inner(w_im, nu_re * Eperp_im) * dx
+        self._a_p += inner(B(w_im), nu_re * B(Eperp_im)) * dx
+        self._a_p += omega2_v2 * inner(w_im, nu_re * Eperp_im) * dx
 
         """
         7
@@ -134,17 +130,17 @@ class Ecurl():
         =\int_\Omega{\vec{w}^\Im\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}\vec{E}^\Re_z\;d\Omega}
         $$
         """
-        a_p += inner(w_im, Z(nu_re * A(Ez_re))) * dx
+        self._a_p += inner(w_im, Z(nu_re * A(Ez_re))) * dx
 
         """
-        10
+        10-
         $$
         S^{\Im\Re}_{\perp z}
         =\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
         \left(\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Im_\perp\right)\;d\Omega}
         $$
         """
-        a_p += inner(A(v_re), nu_re * Z(Eperp_im)) * dx
+        self._a_p += -inner(A(v_re), nu_re * Z(Eperp_im)) * dx
 
         """
         11
@@ -154,17 +150,17 @@ class Ecurl():
         \left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;d\Omega}
         $$
         """
-        a_p += inner(A(v_re), nu_re * A(Ez_re)) * dx
+        self._a_p += inner(A(v_re), nu_re * A(Ez_re)) * dx
 
         """
-        13
+        13-
         $$
         S^{\Re\Im}_{\perp z}
         =-\int_\Omega{\left(\hat{\operatorname{A}}v^\Im\right)
         \left(\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Re_\perp\right)\;d\Omega}
         $$
         """
-        a_p += -inner(A(v_im), nu_re * Z(Eperp_re)) * dx
+        self._a_p += inner(A(v_im), nu_re * Z(Eperp_re)) * dx
 
         """
         16
@@ -174,7 +170,7 @@ class Ecurl():
         \left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;d\Omega}
         $$
         """
-        a_p += inner(A(v_im), nu_re * A(Ez_im)) * dx
+        self._a_p += inner(A(v_im), nu_re * A(Ez_im)) * dx
 
         """
         1
@@ -183,7 +179,7 @@ class Ecurl():
         -\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{\vec{w}^\Re\vec{E}^\Re_\perp\;d\Omega}
         $$
         """
-        a_p += -omega2_eps * inner(w_re, Eperp_re) * dx
+        self._a_p += -omega2_eps * inner(w_re, Eperp_re) * dx
 
         """
         4
@@ -192,7 +188,7 @@ class Ecurl():
         -\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{\vec{w}^\Im\vec{E}^\Im_\perp\;d\Omega}
         $$
         """
-        a_p += -omega2_eps * inner(w_im, Eperp_im) * dx
+        self._a_p += -omega2_eps * inner(w_im, Eperp_im) * dx
 
         """
         5
@@ -201,7 +197,7 @@ class Ecurl():
         -\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{v^\Re E^\Re_z\;d\Omega}
         $$
         """
-        a_p += -omega2_eps * inner(v_re, Ez_re) * dx
+        self._a_p += -omega2_eps * inner(v_re, Ez_re) * dx
 
         """
         8
@@ -210,7 +206,7 @@ class Ecurl():
         -\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{v^\Im E^\Im_z\;d\Omega}
         $$
         """
-        a_p += -omega2_eps * inner(v_im, Ez_im) * dx
+        self._a_p += -omega2_eps * inner(v_im, Ez_im) * dx
 
         if nu_im is not None:
             pass
@@ -223,8 +219,8 @@ class Ecurl():
             -\frac{\omega^2}{\beta^2 c_0^2}\int_\Omega{\vec{w}^\Re\nu^\Im\vec{E}^\Im_\perp\;d\Omega}
             $$
             """
-            # a_p += -inner(B(w_re), nu_re * B(Eperp_re)) * dx
-            # a_p += omega2_v2 * inner(w_re, nu_re * Eperp_re) * dx
+            # self._a_p += -inner(B(w_re), nu_re * B(Eperp_re)) * dx
+            # self._a_p += omega2_v2 * inner(w_re, nu_re * Eperp_re) * dx
 
             """
             3
@@ -233,7 +229,7 @@ class Ecurl():
             =-\int_\Omega{\vec{w}^\Re\hat{\operatorname{Z}}\nu^\Im\hat{\operatorname{A}}\vec{E}^\Re_z\;d\Omega}
             $$
             """
-            a_p += -inner(w_re, nu_re * Eperp_re) * dx
+            self._a_p += -inner(w_re, nu_re * Eperp_re) * dx
 
             """
             5
@@ -419,7 +415,7 @@ class Ecurl():
         J_s^\Im = -\omega\int_\Omega{v^\Im J_s \;d\Omega}
         $$
         """
-        L_p = -omega * inner(v_im, self.solution.Js) * dx
+        self._L_p = -omega * inner(v_im, self.solution.Js) * dx
 
         """
         1
@@ -428,7 +424,7 @@ class Ecurl():
         \omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{\vec{w}^\Re\vec{E}^\Re_\perp\;d\Omega}
         $$
         """
-        L_p += omega2_eps * inner(w_re, self.solution.Ediv_re_perp) * dx
+        self._L_p += omega2_eps * inner(w_re, self.solution.Ediv_perp_re) * dx
 
         """
         4
@@ -437,7 +433,7 @@ class Ecurl():
         \omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{\vec{w}^\Im\vec{E}^\Im_\perp\;d\Omega}
         $$
         """
-        L_p += omega2_eps * inner(w_im, self.solution.Ediv_im_perp) * dx
+        self._L_p += omega2_eps * inner(w_im, self.solution.Ediv_perp_im) * dx
 
         """
         5
@@ -446,7 +442,7 @@ class Ecurl():
         \omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{v^\Re E^\Re_z\;d\Omega}
         $$
         """
-        L_p += omega2_eps * inner(v_re, self.solution.Ediv_re_z) * dx
+        self._L_p += omega2_eps * inner(v_re, self.solution.Ediv_z_re) * dx
 
         """
         8
@@ -455,7 +451,7 @@ class Ecurl():
         \omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{v^\Im E^\Im_z\;d\Omega}
         $$
         """
-        L_p += omega2_eps * inner(v_im, self.solution.Ediv_im_z) * dx
+        self._L_p += omega2_eps * inner(v_im, self.solution.Ediv_z_im) * dx
 
         if sigma is not None:
             pass
@@ -491,17 +487,41 @@ class Ecurl():
             $$
             """
 
-        bc = self.__set_bc(V)
+        self._bc = self.__set_bc(V)
 
-        system = dolfinx.fem.LinearProblem(a_p, L_p, bcs=[bc],
-                                           petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
-        solution = system.solve()
+        self._A = dolfinx.fem.create_matrix(self._a_p)
+        self._b = dolfinx.fem.create_vector(self._L_p)
+
+        self._Ecurl = dolfinx.Function(V)
+
         # FIXME: workaround for https://github.com/FEniCS/dolfinx/issues/1577
-        (self.solution.Ecurl_re_perp,
-         self.solution.Ecurl_im_perp,
-         self.solution.Ecurl_re_z,
-         self.solution.Ecurl_im_z) = solution.split()
-        (self.solution.ecurl_re_perp,
-         self.solution.ecurl_im_perp,
-         self.solution.ecurl_re_z,
-         self.solution.ecurl_im_z) = ufl.split(solution)
+        (self.solution.Ecurl_perp_re,
+         self.solution.Ecurl_perp_im,
+         self.solution.Ecurl_z_re,
+         self.solution.Ecurl_z_im) = self._Ecurl.split()
+        (self.solution.ecurl_perp_re,
+         self.solution.ecurl_perp_im,
+         self.solution.ecurl_z_re,
+         self.solution.ecurl_z_im) = ufl.split(self._Ecurl)
+
+    def solve(self, petsc_options={"linear_solver": "preonly",
+                                   "preconditioner": "la"}):
+        """Solve equation."""
+
+        self.solution.solver.reset()
+        self.solution._set_solver_options(petsc_options)
+
+        self._A.zeroEntries()
+        dolfinx.fem.assemble_matrix(self._A, self._a_p, bcs=[self._bc])
+        self._A.assemble()
+        with self._b.localForm() as b_loc:
+            b_loc.set(0)
+        dolfinx.fem.assemble_vector(self._b, self._L_p)
+        self.solution.solver.setOperators(self._A)
+
+        dolfinx.fem.apply_lifting(self._b, [self._a_p], [[self._bc]])
+        self._b.ghostUpdate(addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE)
+        dolfinx.fem.set_bc(self._b, [self._bc])
+
+        self.solution.solver.solve(self._b, self._Ecurl.vector)
+        self._Ecurl.x.scatter_forward()

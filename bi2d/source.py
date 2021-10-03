@@ -3,7 +3,9 @@
 from enum import Enum
 import dolfinx
 import ufl
+from ufl import inner, dx
 import numpy as np
+from petsc4py import PETSc
 
 
 class SourceFunction(Enum):
@@ -30,8 +32,8 @@ class Js():
         sigma = (maxx - minx) / 2 / 2
         x = ufl.SpatialCoordinate(function_space)
         A = 1 / (2 * np.pi * sigma**2)
-        return A * ufl.exp(-(x[0]-centerx)**2 / (2 * sigma**2)
-                           -(x[1]-centery)**2 / (2 * sigma**2)) * test_function * ufl.dx
+        return A * ufl.exp(- (x[0] - centerx)**2 / (2 * sigma**2)
+                           - (x[1] - centery)**2 / (2 * sigma**2)) * test_function * dx
 
     def __source_function_dipole(self, function_space, test_function):
         raise NotImplementedError()
@@ -47,14 +49,27 @@ class Js():
         self.source_function = source_function
         self.material_map = solution.material_map
         self.mesh = solution.mesh
-
-    def solve(self):
-        """Solve equation."""
         V = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.H1)
         u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
-        a_p = ufl.inner(u, v) * ufl.dx
+        a_p = inner(u, v) * dx
         L_p = self.source_functions[self.source_function](V, v)
         self.solution.Js = dolfinx.Function(V)
-        projection = dolfinx.fem.LinearProblem(a_p, L_p, u=self.solution.Js)
-        projection.solve()
-        self.solution.q = dolfinx.fem.assemble_scalar(self.solution.Js * ufl.dx)
+        self._A = dolfinx.fem.create_matrix(a_p)
+        self._b = dolfinx.fem.create_vector(L_p)
+        self._A.zeroEntries()
+        dolfinx.fem.assemble_matrix(self._A, a_p)
+        self._A.assemble()
+        with self._b.localForm() as b_loc:
+            b_loc.set(0)
+        dolfinx.fem.assemble_vector(self._b, L_p)
+
+    def solve(self, petsc_options={"linear_solver": "preonly",
+                                   "preconditioner": "la"}):
+        """Solve equation."""
+        self.solution.solver.reset()
+        self.solution._set_solver_options(petsc_options)
+
+        self.solution.solver.setOperators(self._A)
+        self.solution.solver.solve(self._b, self.solution.Js.vector)
+        self.solution.Js.x.scatter_forward()
+        self.solution.q = dolfinx.fem.assemble_scalar(self.solution.Js * dx)
