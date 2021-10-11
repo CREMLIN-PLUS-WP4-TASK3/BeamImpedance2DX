@@ -65,7 +65,8 @@ class MaterialMap():
 
         for i in np.unique(material_indices):
             if np.sum(material_indices == i) > 1:
-                raise(IndexError(f"Duplicate use of material index {i}"))
+                names = ", ".join([m.name for m in materials if m.index == i])
+                raise(IndexError(f"Duplicate use of material index {i} ({names})"))
 
         for i in self.mesh_subdomains:
             if i not in material_indices:
@@ -210,14 +211,24 @@ class MaterialMap():
                 self.xdmf_write_field(xdmf, n)
 
 
-class FileInterpolate():
-    """Interpolate data from file."""
+class ArrayInterpolate():
+    """Interpolate data from array."""
 
-    def __init__(self, f, xi, yi, delimiter=None):
+    def __init__(self, x, y):
         """Initialize."""
+        self.data_x = x
+        self.data_y = y
+
+    @classmethod
+    def from_numpy(cls, array, xi=0, yi=1):
+        """Interpolate data from numpy array."""
+        return cls(array[:,0], array[:,1])
+
+    @classmethod
+    def from_file(cls, f, xi=0, yi=1, delimiter=None):
+        """Interpolate data from text file."""
         data = np.genfromtxt(f, delimiter=delimiter)
-        self.data_x = data[:, xi]
-        self.data_y = data[:, yi]
+        return cls(data[:, xi], data[:, yi])
 
     def interp(self, x):
         """Interpolate point."""

@@ -1,10 +1,10 @@
 """BeamImpedance2DX package."""
 
 
-from .mesh import convert_msh, Mesh
-from .material import Material, MaterialMap, FileInterpolate
+from .mesh import Mesh
+from .material import Material, MaterialMap, ArrayInterpolate
 from .solution import Solution
 from .source import SourceFunction
 from .curl import BoundaryType
 
-__all__ = [convert_msh, Mesh, Material, MaterialMap, Solution, SourceFunction, BoundaryType, FileInterpolate]
+__all__ = [Mesh, Material, MaterialMap, Solution, SourceFunction, BoundaryType, ArrayInterpolate]

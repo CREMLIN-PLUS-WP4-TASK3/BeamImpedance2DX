@@ -125,7 +125,7 @@ class Ediv():
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Set poisson function")
 
-    def solve(self, petsc_options={"ksp_type": "gmres", "pc_type": "lu"}):
+    def solve(self, petsc_options={"ksp_type": "preonly", "pc_type": "lu", "pc_factor_mat_solver_type": "mumps"}):
         """Solve equation."""
         if self.solution._Js_stale:
             raise ValueError("Source function Js solution is stale and needs to be recalculated first")

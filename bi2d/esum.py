@@ -26,8 +26,8 @@ class Esum():
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Setting field summator")
 
-        Vperp = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.Hcurl)
-        Vz = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.H1)
+        Vperp = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.Hcurl_vis)
+        Vz = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.H1_vis)
 
         for name, expr, V in [("Eperp_re", self.solution.Ediv_perp_re+self.solution.ecurl_perp_re, Vperp),
                               ("Eperp_im", self.solution.Ediv_perp_im+self.solution.ecurl_perp_im, Vperp),
@@ -47,7 +47,7 @@ class Esum():
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Set field summator")
 
-    def solve(self, petsc_options={"ksp_type": "gmres", "pc_type": "lu"}):
+    def solve(self, petsc_options={"ksp_type": "preonly", "pc_type": "lu", "pc_factor_mat_solver_type": "mumps"}):
         """Solve equation."""
 
         if self.solution._Ediv_stale:

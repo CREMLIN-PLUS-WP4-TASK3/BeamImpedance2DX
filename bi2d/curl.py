@@ -141,7 +141,7 @@ class Ecurl():
         self._a_p += inner(w_im, Z(nu_re * A(Ez_re))) * dx
 
         r"""
-        10-
+        10
         $$
         S^{\Im\Re}_{\perp z}
         =-\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
@@ -161,7 +161,7 @@ class Ecurl():
         self._a_p += inner(A(v_re), nu_re * A(Ez_re)) * dx
 
         r"""
-        13-
+        13
         $$
         S^{\Re\Im}_{\perp z}
         =\int_\Omega{\left(\hat{\operatorname{A}}v^\Im\right)
@@ -498,57 +498,13 @@ class Ecurl():
             self._L_p += inner(v_re, omega_sigma * self.solution.Ediv_z_im) * dx
 
             r"""
-            15-
+            15
             $$
             N^{\Re\Im}_{\sigma z}=
             -\omega\int_{\Omega}{v^\Im\sigma E^\Re_z\;d\Omega}
             $$
             """
             self._L_p += -inner(v_im, omega_sigma * self.solution.Ediv_z_re) * dx
-
-        # self._a_p = 0
-        # self._a_p += -inner(w_re, omega**2*self.material_map.eps*Eperp_re)*dx
-        # self._a_p += -inner(w_im, omega**2*self.material_map.eps*Eperp_im)*dx
-        # self._a_p += -inner(v_re, omega**2*self.material_map.eps*Ez_re)*dx
-        # self._a_p += -inner(v_im, omega**2*self.material_map.eps*Ez_im)*dx
-
-        # self._a_p += omega * inner(w_im,sigma*Eperp_re)*dx
-        # self._a_p += -omega * inner(w_re,sigma*Eperp_im)*dx
-        # self._a_p += omega * inner(v_im,sigma*Ez_re)*dx
-        # self._a_p += -omega * inner(v_re,sigma*Ez_im)*dx
-
-        # self._a_p += inner(w_re, omega2_v2 * nu_re*Eperp_re)*dx
-        # self._a_p += -inner(w_re, Z(nu_re*A(Ez_im)))*dx
-        # self._a_p += inner(B(w_re), nu_re*B(Eperp_re))*dx
-        # self._a_p += -inner(A(v_re), nu_re*Z(Eperp_im))*dx
-        # self._a_p += inner(A(v_re), nu_re*A(Ez_re))*dx
-        # self._a_p += inner(w_im, omega2_v2 * nu_re*Eperp_im)*dx
-        # self._a_p += inner(w_im, Z(nu_re*A(Ez_re)))*dx
-        # self._a_p += inner(B(w_im), nu_re*B(Eperp_im))*dx
-        # self._a_p += inner(A(v_im), nu_re*Z(Eperp_re))*dx
-        # self._a_p += inner(A(v_im), nu_re*A(Ez_im))*dx
-
-        # self._L_p = 0
-        # self._L_p += -inner(v_im, omega*self.solution.Js)*dx
-        # self._L_p += inner(v_im, omega2_eps*self.solution.Ediv_z_re)*dx
-        # self._L_p += inner(v_im, omega*sigma*self.solution.Ediv_z_im)*dx
-        # self._L_p += inner(v_im, omega2_eps*self.solution.Ediv_z_im)*dx
-        # self._L_p += -inner(v_im, omega*sigma*self.solution.Ediv_z_re)*dx
-        # self._L_p += inner(w_re, omega2_eps*self.solution.Ediv_perp_re)*dx
-        # self._L_p += inner(w_re, omega*sigma*self.solution.Ediv_perp_im)*dx
-        # self._L_p += inner(w_im, omega2_eps*self.solution.Ediv_perp_im) *dx
-        # self._L_p += -inner(w_im, omega*sigma*self.solution.Ediv_perp_re) *dx
-
-        # self._L_p = 0
-        # self._L_p += -inner(v_im, omega*self.solution.Js)*dx
-        # self._L_p += inner(v_re, omega2_eps*self.solution.Ediv_z_re)*dx
-        # self._L_p += inner(v_re, omega*sigma*self.solution.Ediv_z_im)*dx
-        # self._L_p += inner(v_im, omega2_eps*self.solution.Ediv_z_im)*dx
-        # self._L_p += -inner(v_im, omega*sigma*self.solution.Ediv_z_re)*dx
-        # self._L_p += inner(w_re, omega2_eps*self.solution.Ediv_perp_re)*dx
-        # self._L_p += inner(w_re, omega*sigma*self.solution.Ediv_perp_im)*dx
-        # self._L_p += inner(w_im, omega2_eps*self.solution.Ediv_perp_im) *dx
-        # self._L_p += -inner(w_im, omega*sigma*self.solution.Ediv_perp_re) *dx
 
         self._bc = self.__set_bc(V, bcs)
 
@@ -570,7 +526,7 @@ class Ecurl():
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Set curl function")
 
-    def solve(self, petsc_options={"ksp_type": "gmres", "pc_type": "lu"}):
+    def solve(self, petsc_options={"ksp_type": "preonly", "pc_type": "lu", "pc_factor_mat_solver_type": "mumps"}):
         """Solve equation."""
 
         if self.solution._Js_stale:

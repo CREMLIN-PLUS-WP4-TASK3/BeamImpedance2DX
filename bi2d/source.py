@@ -39,37 +39,22 @@ class Js():
                            - (x[1] - centery)**2 / (2 * sigma**2)) * \
                            test_function * dx
 
-    def __source_function_integral_monopole(self, _):
-        return dolfinx.fem.assemble_scalar(self.solution.Js * dx)
-
     def __source_function_multipole_sin(self, function_space, test_function, N):
         self.solution._monopole = False
         (minx, miny), (maxx, maxy) = self.mesh.get_limits(self.material_map.beam_index)
         centerx = (minx + maxx) / 2
         centery = (miny + maxy) / 2
         R = (maxx - minx) / 2
-        self.solution.d = R
+        self.solution.beam_center = (centerx, centery)
         x = ufl.SpatialCoordinate(function_space)
         r = ufl.sqrt(x[0]**2+x[1]**2) / R
         theta = ufl.atan_2(x[1], x[0])
         # FIXME: Fix the normalized amplitude
-        return N * 10 / (2 * np.pi * R**2) * ufl.sin(np.pi*r)*ufl.sin(N * theta + self.rotation) * \
+        return ufl.sin(np.pi*r)*ufl.sin(N * theta + self.rotation) * \
             self.material_map.beam * test_function * dx
 
     def __source_function_dipole_sin(self, function_space, test_function):
         return self.__source_function_multipole_sin(function_space, test_function, 2)
-
-    def __source_function_integral_multipole_sin(self, function_space, N):
-        x = ufl.SpatialCoordinate(function_space)
-        theta = ufl.atan_2(x[1], x[0])
-        # FIXME: fix multipole integration
-        return dolfinx.fem.assemble_scalar(ufl.conditional(theta >= -self.rotation, 1, 0) *
-                                           ufl.conditional(theta <= -self.rotation + np.pi / N, 1, 0) *
-                                           self.solution.Js * dx)
-        return dolfinx.fem.assemble_scalar(self.solution.Js * dx)
-
-    def __source_function_integral_dipole_sin(self, function_space):
-        return self.__source_function_integral_multipole_sin(function_space, 2)
 
     def __init__(self, solution, rotation=0, source_function=SourceFunction.MONOPOLE):
         """Initialize."""
@@ -77,11 +62,6 @@ class Js():
             SourceFunction.MONOPOLE_CONSTANT: self.__source_function_monopole_constant,
             SourceFunction.MONOPOLE_GAUSSIAN: self.__source_function_monopole_gaussian,
             SourceFunction.DIPOLE_SIN: self.__source_function_dipole_sin,
-        }
-        self.source_function_integrals = {
-            SourceFunction.MONOPOLE_CONSTANT: self.__source_function_integral_monopole,
-            SourceFunction.MONOPOLE_GAUSSIAN: self.__source_function_integral_monopole,
-            SourceFunction.DIPOLE_SIN: self.__source_function_integral_dipole_sin,
         }
         self.solution = solution
         self.source_function = source_function
@@ -101,7 +81,7 @@ class Js():
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Set source function")
 
-    def solve(self, petsc_options={"ksp_type": "gmres", "pc_type": "lu"}):
+    def solve(self, petsc_options={"ksp_type": "preonly", "pc_type": "lu", "pc_factor_mat_solver_type": "mumps"}):
         """Solve equation."""
 
         if MPI.COMM_WORLD.rank == 0:
@@ -112,9 +92,5 @@ class Js():
 
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Solved source function")
-
-        q = self.source_function_integrals[self.source_function](self._V)
-        q = np.sum(MPI.COMM_WORLD.gather(q))
-        self.solution.q = MPI.COMM_WORLD.bcast(q)
 
         self.solution._Js_stale = False

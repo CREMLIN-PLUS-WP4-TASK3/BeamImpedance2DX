@@ -2,6 +2,11 @@
 
 This is a port of <https://bitbucket.org/uniederm/beamimpedance2d/src/master/> program.
 
+Run jupyter server using the following command:
+```bash
+> docker run -v $(pwd):/root/shared -w "/root/shared" --rm -p 8880:8888 dolfi
+nx/lab
+```
 
 <!-- # Installation -->
 

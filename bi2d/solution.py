@@ -28,7 +28,11 @@ class Solution():
         self._beta = dolfinx.Constant(self.mesh.mesh, 1)
         # FEM elements
         self.H1 = ufl.FiniteElement("Lagrange", material_map.mesh.mesh.ufl_cell(), H1_order)
+        self.H1_vis = ufl.FiniteElement("Lagrange", material_map.mesh.mesh.ufl_cell(), H1_order+1)
         self.Hcurl = ufl.FiniteElement("Nedelec 1st kind H(curl)", material_map.mesh.mesh.ufl_cell(), Hcurl_order)
+        self.Hcurl_vis = ufl.VectorElement(ufl.FiniteElement("Lagrange", material_map.mesh.mesh.ufl_cell(),
+                                                             Hcurl_order+1),
+                                           dim=2)
         # Solution type flag
         self._monopole = True
         # Solver setup
@@ -57,10 +61,8 @@ class Solution():
         self._Ediv_stale = True
         self._Ecurl_stale = True
         self._E_stale = True
-        # Source charge. Should be equal to 1
-        self.q = 0.0
-        # Distance between multipole charges
-        self.d = 0.0
+        # Beam center coordinate
+        self.beam_center = (0.0, 0.0)
         # Attributes for self.get_z function
         self.__bcs = None
         self.__Js_solver = None
@@ -75,7 +77,7 @@ class Solution():
         self.solver.setFromOptions()
 
     def _solve(self, a_p, L_p, A, b, f, bcs=[],
-               petsc_options={"ksp_type": "gmres", "pc_type": "lu"}):
+               petsc_options={"ksp_type": "preonly", "pc_type": "lu", "pc_factor_mat_solver_type": "mumps"}):
         self.solver.reset()
         self._set_solver_options(petsc_options)
         self.solver.setOperators(A)
@@ -146,6 +148,10 @@ class Solution():
         E_z_im = self.Ediv_z_im + self.ecurl_z_im
 
         if self._monopole:
+            q = dolfinx.fem.assemble_scalar(self.Js * ufl.dx)
+            q = np.sum(MPI.COMM_WORLD.gather(q))
+            q = MPI.COMM_WORLD.bcast(q)
+
             r"""
             $$
             \underline{Z}_\parallel(\omega)
@@ -155,11 +161,16 @@ class Solution():
             \right)
             $$
             """
-            Zre = dolfinx.fem.assemble_scalar(-1 / self.q ** 2 *
+            Zre = dolfinx.fem.assemble_scalar(-1 / q ** 2 *
                                               ufl.inner(E_z_re, self.Js) * ufl.dx)
-            Zim = dolfinx.fem.assemble_scalar(-1 / self.q ** 2 *
+            Zim = dolfinx.fem.assemble_scalar(-1 / q ** 2 *
                                               ufl.inner(E_z_im, self.Js) * ufl.dx)
         else:
+            x = ufl.SpatialCoordinate(self.Ediv_z_re.function_space)
+            position_function_2 = (x[0] - self.beam_center[0])**2 + (x[1] - self.beam_center[1])**2
+            dip_mom_2 = dolfinx.fem.assemble_scalar(ufl.inner(position_function_2, self.Js**2) * ufl.dx)
+            dip_mom_2 = np.sum(MPI.COMM_WORLD.gather(dip_mom_2))
+            dip_mom_2 = MPI.COMM_WORLD.bcast(dip_mom_2)
             r"""
             $$
             \underline{Z}_\perp(\omega)
@@ -169,11 +180,9 @@ class Solution():
             \right)
             $$
             """
-            Zre = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / (self.q * self.d)**2 / self._omega *
-                                              self.material_map.beam *
+            Zre = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / dip_mom_2 / self._omega *
                                               ufl.inner(E_z_re, self.Js) * ufl.dx)
-            Zim = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / (self.q * self.d)**2 / self._omega *
-                                              self.material_map.beam *
+            Zim = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / dip_mom_2 / self._omega *
                                               ufl.inner(E_z_im, self.Js) * ufl.dx)
         _Zre = MPI.COMM_WORLD.gather(Zre)
         _Zim = MPI.COMM_WORLD.gather(Zim)
@@ -188,7 +197,7 @@ class Solution():
     def get_z(self, f, beta=1.0,
               bcs=[(-1, BoundaryType.DIRICHLET)],
               rotation=0, source_function=SourceFunction.MONOPOLE,
-              petsc_options={"ksp_type": "gmres", "pc_type": "lu"}):
+              petsc_options={"ksp_type": "preonly", "pc_type": "lu", "pc_factor_mat_solver_type": "mumps"}):
         """Get impedance. High level interface to the library functionality."""
         if self.__Js_solver is None:
             self.__Js_solver = Js(self, rotation=rotation,
@@ -201,9 +210,7 @@ class Solution():
         self.beta = beta
         f = np.array(f)
 
-        output = np.zeros(f.size, dtype=[("f", "float"),
-                                         ("z_re", "float"),
-                                         ("z_im", "float")])
+        output = np.zeros((f.size, 3))
         for i, f in enumerate(f):
             if MPI.COMM_WORLD.rank == 0:
                 self.logger.info(f"Solving for f={f:.2e}, β={beta:.2f}")
@@ -215,46 +222,11 @@ class Solution():
             if self._Ecurl_stale:
                 self.__Ecurl_solver.solve(petsc_options=petsc_options)
             z_re, z_im = self.z
-            output[i]["f"] = f
-            output[i]["z_re"] = z_re
-            output[i]["z_im"] = z_im
+            output[i][0] = f
+            output[i][1] = z_re
+            output[i][2] = z_im
 
         return output
-
-        # comm = MPI.COMM_WORLD
-        # size = comm.Get_size()
-        # rank = comm.Get_rank()
-
-        # data = None
-        # if rank == 0:
-        #     data = np.array_split(f, size)
-
-        # chunk = comm.scatter(data)
-
-        # output = np.zeros(chunk.size, dtype=[("f", "float"),
-        #                                      ("z_re", "float"),
-        #                                      ("z_im", "float")])
-        # for i, f in enumerate(chunk):
-        #     print(f"Solving for {f} | {rank}")
-        #     self.f = f
-        #     if self._Js_stale:
-        #         self.__Js_solver.solve(petsc_options=petsc_options)
-        #     if self._Ediv_stale:
-        #         self.__Ediv_solver.solve(petsc_options=petsc_options)
-        #     if self._Ecurl_stale:
-        #         self.__Ecurl_solver.solve(petsc_options=petsc_options)
-        #     z_re, z_im = self.z
-        #     output[i]["f"] = f
-        #     output[i]["z_re"] = z_re
-        #     output[i]["z_im"] = z_im
-
-        # values = comm.gather(output)
-        # if rank == 0:
-        #     data = np.hstack(values)
-        # else:
-        #     data = None
-
-        # return data
 
     def save(self, field_file: str):
         """Save solution to XDMF file."""
