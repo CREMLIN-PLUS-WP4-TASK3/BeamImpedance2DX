@@ -5,37 +5,40 @@ from numbers import Number
 import dolfinx
 import numpy as np
 from mpi4py import MPI
+from copy import deepcopy
 
 
 class Material():
     """Material properties."""
 
-    def __init__(self, index, name=None, eps_r=1, sigma=0, mu_r=(1, 0)):
+    def __init__(self, index, name=None, eps_r=1, sigma=0, mu_r_re=1, mu_im=0):
         """Initialize."""
-        if not isinstance(index, int) or index < 1:
+        if not isinstance(index, int) or index < 0:
             raise(ValueError("Index must be a positive integer"))
         self.index = index
         self.name = name if name is not None else f"material_{index}"
-        if type(mu_r).__name__ == "tuple":
-            mu_r_re, mu_im = mu_r
-        else:
-            mu_r_re = mu_r
-            mu_im = 0
         for n in ["eps_r", "sigma", "mu_r_re", "mu_im"]:
             value = locals()[n]
             if not isinstance(value, Number) and \
-               not (type(value).__name__ == "function" and
-                    (len(signature(value).parameters) == 2 or
-                     len(signature(value).parameters) == 3)):
+               not ((type(value).__name__ == "function" or
+                     type(value).__name__ == "method") and
+                    (len(signature(value).parameters) >= 1 or
+                     len(signature(value).parameters) <= 3)):
                 raise(AttributeError(f"""Invalid value of argument {n}. \
 Should be a number or a function with signature [freq:float] -> val:float or \
 [x:float, y:float] -> val:float or [x:float, y:float, freq:float] -> val:float"""))
             setattr(self, n, value)
             setattr(self, n + "_dispersive",
-                    type(value).__name__ == "function" and
-                    len(signature(value).parameters) == 3)
+                    (type(value).__name__ == "function" or
+                     type(value).__name__ == "method") and
+                    (len(signature(value).parameters) == 1 or
+                     len(signature(value).parameters) == 3))
         self.real_mu = mu_im == 0
         self.real_eps = sigma == 0
+
+    def copy(self):
+        """Create a copy of a material"""
+        return deepcopy(self)
 
     def __str__(self):
         """String representation."""
@@ -68,18 +71,17 @@ class MaterialMap():
             if i not in material_indices:
                 raise(IndexError(f"No material is set for mesh subdomain index {i}"))
 
-        self.materials = [m for m in materials if m.index in material_indices]
+        self.materials = [m for m in materials if m.index in self.mesh_subdomains]
 
         functionSpace = dolfinx.FunctionSpace(mesh.mesh, ("Discontinuous Lagrange", 0))
         self.beam = dolfinx.Function(functionSpace)
         self.beam.name = "beam"
         with self.beam.vector.localForm() as loc:
+            loc.set(0)
             cells = mesh.subdomains.indices[mesh.subdomains.values == self.beam_index]
-            loc.setValues(cells, np.full(len(cells), 1))
-            cells = mesh.subdomains.indices[mesh.subdomains.values != self.beam_index]
-            loc.setValues(cells, np.full(len(cells), 0))
+            loc.setValues(cells, np.full(cells.size, 1))
 
-        (minx, miny), (maxx, maxy), _ = self.mesh.get_limits(self.beam_index)
+        (minx, miny), (maxx, maxy) = self.mesh.get_limits(self.beam_index)
         if not np.isclose(maxx - minx, maxy - miny):
             raise ValueError(f"Beam subdomain {beam_subdomain_index} does not appear to be round")
 
@@ -117,7 +119,7 @@ class MaterialMap():
             if isinstance(value, Number):
                 with field.vector.localForm() as loc:
                     cells = subdomains.indices[subdomains.values == index]
-                    loc.setValues(cells, np.full(len(cells), value))
+                    loc.setValues(cells, np.full(cells.size, value))
             elif type(value).__name__ == "function":
                 # We have to use temporary function to avoid overwriting data from other subdomains
                 f = dolfinx.Function(field.ufl_function_space())
@@ -129,7 +131,7 @@ class MaterialMap():
                     f.interpolate(lambda x: 0 * x[0] + 0 * x[1] + value(x[0], x[1], self.f))
                 else:
                     raise ValueError(f"Invalid {name} function signature for material {m.name}")
-                f.x.scatter_forward()
+                f.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
                 cells = subdomains.indices[subdomains.values == index]
                 with f.vector.localForm() as loc_f, field.vector.localForm() as loc_field:
                     val = loc_f.getValues(cells)
@@ -206,3 +208,17 @@ class MaterialMap():
         for n in ["beam", "eps_r", "eps", "sigma", "mu_r_re", "mu_re", "mu_im", "nu_re", "nu_im"]:
             if getattr(self, n) is not None:
                 self.xdmf_write_field(xdmf, n)
+
+
+class FileInterpolate():
+    """Interpolate data from file."""
+
+    def __init__(self, f, xi, yi, delimiter=None):
+        """Initialize."""
+        data = np.genfromtxt(f, delimiter=delimiter)
+        self.data_x = data[:, xi]
+        self.data_y = data[:, yi]
+
+    def interp(self, x):
+        """Interpolate point."""
+        return np.interp([x], self.data_x, self.data_y)[0]

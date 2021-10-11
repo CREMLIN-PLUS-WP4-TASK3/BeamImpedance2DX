@@ -276,7 +276,7 @@ $$
 $$
 
 $$
--\frac{\omega\sigma}{\beta^2 c_0^2}\int_\Omega{v^\Im\Phi^\Im \;d\Omega}
+-\frac{\omega\sigma}{\beta^2 c_0^2}\int_\Omega{v^\Im\Phi^\Re \;d\Omega}
 $$
 
 Using PEC boundary condition thus setting boundary field values to zero.
@@ -292,7 +292,7 @@ $$
 \varepsilon_0\varepsilon_r\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Im \;d\Omega}+
 \frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\int_\Omega{v^\Im\Phi^\Im \;d\Omega}-\\
 &-\frac{\sigma}{\omega}\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Re \;d\Omega}
--\frac{\omega\sigma}{\beta^2 c_0^2}\int_\Omega{v^\Im\Phi^\Im \;d\Omega}
+-\frac{\omega\sigma}{\beta^2 c_0^2}\int_\Omega{v^\Im\Phi^\Re \;d\Omega}
 =\frac{1}{\beta c_0}\int_\Omega{v^\Re J_s \;d\Omega}
 \end{align}
 $$
@@ -308,7 +308,7 @@ $$
 \varepsilon_0\varepsilon_r\beta c_0\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Im \;d\Omega}+
 \frac{\omega^2\varepsilon_0\varepsilon_r}{\beta c_0}\int_\Omega{v^\Im\Phi^\Im \;d\Omega}-\\
 &-\frac{\sigma\beta c_0}{\omega}\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Re \;d\Omega}
--\frac{\omega\sigma}{\beta c_0}\int_\Omega{v^\Im\Phi^\Im \;d\Omega}
+-\frac{\omega\sigma}{\beta c_0}\int_\Omega{v^\Im\Phi^\Re \;d\Omega}
 =\int_\Omega{v^\Re J_s \;d\Omega}
 \end{align}
 $$
@@ -814,12 +814,12 @@ $$
 \begin{align}
 \int_\Omega{\varphi\left(\hat{\operatorname{B}}\vec{F}\right)\;d\Omega}
 =&\int_\Omega{\varphi\left(\vec{e}_z\nabla\times\vec{F}\right)\;d\Omega}
-=-\int_\Omega{\vec{n}\varphi\nabla\times\vec{F}\;d\Omega}
-=-\int_\Omega{\vec{n}\nabla\times\left(\varphi\vec{F}\right)\;d\Omega}
+=-\int_\Omega{\vec{n}\varphi\nabla\times\vec{F}\;d\Omega} \\
+=&-\int_\Omega{\vec{n}\nabla\times\left(\varphi\vec{F}\right)\;d\Omega}
 -\int_\Omega{\vec{n}\vec{F}\times\left(\nabla\varphi\right)\;d\Omega} \\
-=&-\int_\Omega{\vec{F}\left(-\vec{e}_z\times\left(\nabla\varphi\right)\right)\;d\Omega}
--\int_\Omega{\vec{n}\nabla\times\left(\varphi\vec{F}\right)\;d\Omega}
-=-\int_\Omega{\vec{F}\hat{\operatorname{A}}\varphi \;d\Omega}
+=&\int_\Omega{\vec{F}\left(-\vec{e}_z\times\left(\nabla\varphi\right)\right)\;d\Omega}
+-\int_\Omega{\vec{n}\nabla\times\left(\varphi\vec{F}\right)\;d\Omega} \\
+=&\int_\Omega{\vec{F}\hat{\operatorname{A}}\varphi \;d\Omega}
 -\int_{\partial\Omega}{\varphi\vec{F}\vec{\tau}\;dS}
 \end{align}
 $$
@@ -1192,7 +1192,7 @@ $$
 \hat{H}^{\Re\Re}_{\perp z}
 &=\int_\Omega{v^\Re H^{\Re\Re}_{\perp z}\vec{E}^\Re_\perp\;d\Omega} \\
 &=-\int_\Omega{v^\Re\hat{\operatorname{B}}\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Re_\perp\;d\Omega} \\
-&=\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
+&=-\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
 \left(\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Re_\perp\right)\;d\Omega} +
 \int_{\partial\Omega}{v^\Re\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Re_\perp\vec{\tau}\;dS}
 \end{align}
@@ -1204,7 +1204,7 @@ $$
 \hat{H}^{\Im\Re}_{\perp z}
 &=\int_\Omega{v^\Re H^{\Im\Re}_{\perp z} \vec{E}^\Im_\perp\;d\Omega} \\
 &=-\int_\Omega{v^\Re\hat{\operatorname{B}}\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Im_\perp\;d\Omega} \\
-&=\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
+&=-\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
 \left(\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Im_\perp\right)\;d\Omega} +
 \int_{\partial\Omega}{v^\Re\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Im_\perp\vec{\tau}\;dS}
 \end{align}
@@ -1240,7 +1240,7 @@ $$
 \hat{H}^{\Re\Im}_{\perp z}
 &=\int_\Omega{v^\Im H^{\Re\Im}_{\perp z}\vec{E}^\Re_\perp\;d\Omega} \\
 &=\int_\Omega{v^\Im\hat{\operatorname{B}}\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Re_\perp\;d\Omega} \\
-&=-\int_\Omega{\left(\hat{\operatorname{A}}v^\Im\right)
+&=\int_\Omega{\left(\hat{\operatorname{A}}v^\Im\right)
 \left(\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Re_\perp\right)\;d\Omega} -
 \int_{\partial\Omega}{v^\Im\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Re_\perp\vec{\tau}\;dS}
 \end{align}
@@ -1252,7 +1252,7 @@ $$
 \hat{H}^{\Im\Im}_{\perp z}
 &=\int_\Omega{v^\Im H^{\Im\Im}_{\perp z}\vec{E}^\Im_\perp\;d\Omega} \\
 &=-\int_\Omega{v^\Im\hat{\operatorname{B}}\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Im_\perp\;d\Omega} \\
-&=\int_\Omega{\left(\hat{\operatorname{A}}v^\Im\right)
+&=-\int_\Omega{\left(\hat{\operatorname{A}}v^\Im\right)
 \left(\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Im_\perp\right)\;d\Omega} +
 \int_{\partial\Omega}{v^\Im\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Im_\perp\vec{\tau}\;dS}
 \end{align}
@@ -1300,20 +1300,20 @@ Let's split these terms in real/imaginary and longitudinal and transverse parts
 $$
 \begin{align}
 \omega^2\varepsilon_0\underline{\varepsilon}_r\vec{\underline{E}}
-&=\omega^2\varepsilon_0\varepsilon_r\vec{\underline{E}}
-+j\omega\sigma\vec{\underline{E}} \\
-&=\omega^2\varepsilon_0\varepsilon_r\vec{\underline{E}}_\perp
+=&\omega^2\varepsilon_0\varepsilon_r\vec{\underline{E}}
+-j\sigma\omega\vec{\underline{E}} \\
+=&\omega^2\varepsilon_0\varepsilon_r\vec{\underline{E}}_\perp
 +\omega^2\varepsilon_0\varepsilon_r\underline{E}_z
-+j\omega\sigma\vec{\underline{E}}_\perp
-+j\omega\sigma\underline{E}_z \\
-&=\omega^2\varepsilon_0\varepsilon_r\vec{E}^\Re_\perp
+-j\sigma\omega\vec{\underline{E}}_\perp
+-j\sigma\omega\underline{E}_z \\
+=&\omega^2\varepsilon_0\varepsilon_r\vec{E}^\Re_\perp
 +j\omega^2\varepsilon_0\varepsilon_r\vec{E}^\Im_\perp
 +\omega^2\varepsilon_0\varepsilon_r E_z^\Re
-+j\omega^2\varepsilon_0\varepsilon_r E_z^\Im
-+j\omega\sigma\vec{E}^\Re_\perp
--\omega\sigma\vec{E}^\Im_\perp
-+j\omega\sigma E_z^\Re
--\omega\sigma E_z^\Im
++j\omega^2\varepsilon_0\varepsilon_r E_z^\Im \\
+&-j\sigma\omega\vec{E}^\Re_\perp
++\sigma\omega\vec{E}^\Im_\perp
+-j\sigma\omega E_z^\Re
++\sigma\omega E_z^\Im
 \end{align}
 $$
 
@@ -1434,14 +1434,14 @@ $$
 <!-- 9 -->
 $$
 S^{\Re\Re}_{\perp z}
-=\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
+=-\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
 \left(\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Re_\perp\right)\;d\Omega}
 $$
 
 <!-- 10 -->
 $$
 S^{\Im\Re}_{\perp z}
-=\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
+=-\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
 \left(\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Im_\perp\right)\;d\Omega}
 $$
 
@@ -1462,14 +1462,14 @@ $$
 <!-- 13 -->
 $$
 S^{\Re\Im}_{\perp z}
-=-\int_\Omega{\left(\hat{\operatorname{A}}v^\Im\right)
+=\int_\Omega{\left(\hat{\operatorname{A}}v^\Im\right)
 \left(\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Re_\perp\right)\;d\Omega}
 $$
 
 <!-- 14 -->
 $$
 S^{\Im\Im}_{\perp z}
-=\int_\Omega{\left(\hat{\operatorname{A}}v^\Im\right)
+=-\int_\Omega{\left(\hat{\operatorname{A}}v^\Im\right)
 \left(\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Im_\perp\right)\;d\Omega}
 $$
 
@@ -1490,49 +1490,49 @@ $$
 <!-- 1 -->
 $$
 M^{\Re\Re}_{\varepsilon\perp}=
--\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{\vec{w}^\Re\vec{E}^\Re_\perp\;d\Omega}
+-\omega^2\int_{\Omega}{\vec{w}^\Re\varepsilon_0\varepsilon_r\vec{E}^\Re_\perp\;d\Omega}
 $$
 
 <!-- 2 -->
 $$
 M^{\Im\Re}_{\sigma\perp}=
-\omega\sigma\int_{\Omega}{\vec{w}^\Re\vec{E}^\Im_\perp\;d\Omega}
+-\omega\int_{\Omega}{\vec{w}^\Re\sigma\vec{E}^\Im_\perp\;d\Omega}
 $$
 
 <!-- 5 -->
 $$
 M^{\Re\Im}_{\sigma\perp}=
--\omega\sigma\int_{\Omega}{\vec{w}^\Im\vec{E}^\Re_\perp\;d\Omega}
+\omega\int_{\Omega}{\vec{w}^\Im\sigma\vec{E}^\Re_\perp\;d\Omega}
 $$
 
 <!-- 6 -->
 $$
 M^{\Im\Im}_{\varepsilon\perp}=
--\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{\vec{w}^\Im\vec{E}^\Im_\perp\;d\Omega}
+-\omega^2\int_{\Omega}{\vec{w}^\Im\varepsilon_0\varepsilon_r\vec{E}^\Im_\perp\;d\Omega}
 $$
 
 <!-- 11 -->
 $$
 M^{\Re\Re}_{\varepsilon z}=
--\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{v^\Re E^\Re_z\;d\Omega}
+-\omega^2\int_{\Omega}{v^\Re\varepsilon_0\varepsilon_r E^\Re_z\;d\Omega}
 $$
 
 <!-- 12 -->
 $$
 M^{\Im\Re}_{\sigma z}=
-\omega\sigma\int_{\Omega}{v^\Re E^\Im_z\;d\Omega}
+-\omega\int_{\Omega}{v^\Re\sigma E^\Im_z\;d\Omega}
 $$
 
 <!-- 15 -->
 $$
 M^{\Re\Im}_{\sigma z}=
--\omega\sigma\int_{\Omega}{v^\Im E^\Re_z\;d\Omega}
+\omega\int_{\Omega}{v^\Im\sigma E^\Re_z\;d\Omega}
 $$
 
 <!-- 16 -->
 $$
 M^{\Im\Im}_{\varepsilon z}=
--\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{v^\Im E^\Im_z\;d\Omega}
+-\omega^2\int_{\Omega}{v^\Im\varepsilon_0\varepsilon_r E^\Im_z\;d\Omega}
 $$
 
 <!-- 1 -->
@@ -1613,49 +1613,49 @@ $E_{div}$ terms
 <!-- 1 -->
 $$
 N^{\Re\Re}_{\varepsilon\perp}=
-\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{\vec{w}^\Re\vec{E}^\Re_\perp\;d\Omega}
+\omega^2\int_{\Omega}{\vec{w}^\Re\varepsilon_0\varepsilon_r\vec{E}^\Re_\perp\;d\Omega}
 $$
 
 <!-- 2 -->
 $$
 N^{\Im\Re}_{\sigma\perp}=
--\omega\sigma\int_{\Omega}{\vec{w}^\Re\vec{E}^\Im_\perp\;d\Omega}
+\omega\int_{\Omega}{\vec{w}^\Re\sigma\vec{E}^\Im_\perp\;d\Omega}
 $$
 
 <!-- 5 -->
 $$
 N^{\Re\Im}_{\sigma\perp}=
-\omega\sigma\int_{\Omega}{\vec{w}^\Im\vec{E}^\Re_\perp\;d\Omega}
+-\omega\int_{\Omega}{\vec{w}^\Im\sigma\vec{E}^\Re_\perp\;d\Omega}
 $$
 
 <!-- 6 -->
 $$
 N^{\Im\Im}_{\varepsilon\perp}=
-\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{\vec{w}^\Im\vec{E}^\Im_\perp\;d\Omega}
+\omega^2\int_{\Omega}{\vec{w}^\Im\varepsilon_0\varepsilon_r\vec{E}^\Im_\perp\;d\Omega}
 $$
 
 <!-- 11 -->
 $$
 N^{\Re\Re}_{\varepsilon z}=
-\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{v^\Re E^\Re_z\;d\Omega}
+\omega^2\int_{\Omega}{v^\Re\varepsilon_0\varepsilon_r E^\Re_z\;d\Omega}
 $$
 
 <!-- 12 -->
 $$
 N^{\Im\Re}_{\sigma z}=
--\omega\sigma\int_{\Omega}{v^\Re E^\Im_z\;d\Omega}
+\omega\int_{\Omega}{v^\Re\sigma E^\Im_z\;d\Omega}
 $$
 
 <!-- 15 -->
 $$
 N^{\Re\Im}_{\sigma z}=
-\omega\sigma\int_{\Omega}{v^\Im E^\Re_z\;d\Omega}
+-\omega\int_{\Omega}{v^\Im\sigma E^\Re_z\;d\Omega}
 $$
 
 <!-- 16 -->
 $$
 N^{\Im\Im}_{\varepsilon z}=
-\omega^2\varepsilon_0\varepsilon_r\int_{\Omega}{v^\Im E^\Im_z\;d\Omega}
+\omega^2\int_{\Omega}{v^\Im\varepsilon_0\varepsilon_r E^\Im_z\;d\Omega}
 $$
 
 $J_{s}$ term

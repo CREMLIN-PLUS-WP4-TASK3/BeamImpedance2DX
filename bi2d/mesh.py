@@ -55,18 +55,39 @@ class Mesh:
 
     def get_boundary(self, index):
         """Get boundary with index."""
-        return self.boundaries.indices[self.boundaries.values == index] if self.boundaries is not None else None
+        if self.boundaries is None:
+            raise AttributeError("Boundary data was not loaded")
+        return self.boundaries.indices[self.boundaries.values == index]
 
     def get_limits(self, index):
         """Get mesh subdomain limits."""
         subdomain_indices = self.subdomains.indices[self.subdomains.values == index]
         geometry_indices = np.unique(np.array([self.mesh.geometry.dofmap.links(i) for i in subdomain_indices])
                                      .flatten())
-        geometry_points = self.mesh.geometry.x[geometry_indices]
-        minx = np.min(geometry_points[:, 0])
-        maxx = np.max(geometry_points[:, 0])
-        meanx = np.sum(geometry_points[:, 0]) / geometry_points[:, 0].size
-        miny = np.min(geometry_points[:, 1])
-        maxy = np.max(geometry_points[:, 1])
-        meany = np.sum(geometry_points[:, 1]) / geometry_points[:, 1].size
-        return ((minx, miny), (maxx, maxy), (meanx, meany))
+        # geometry_points = self.mesh.geometry.x[geometry_indices]
+        # minx = np.min(geometry_points[:, 0])
+        # maxx = np.max(geometry_points[:, 0])
+        # miny = np.min(geometry_points[:, 1])
+        # maxy = np.max(geometry_points[:, 1])
+        # return ((minx, miny), (maxx, maxy))
+        if geometry_indices.size > 0:
+            geometry_points = self.mesh.geometry.x[geometry_indices]
+            minx = np.min(geometry_points[:, 0])
+            maxx = np.max(geometry_points[:, 0])
+            miny = np.min(geometry_points[:, 1])
+            maxy = np.max(geometry_points[:, 1])
+        else:
+            minx = np.nan
+            maxx = np.nan
+            miny = np.nan
+            maxy = np.nan
+        values = MPI.COMM_WORLD.gather(np.array([minx, miny, maxx, maxy]))
+        if MPI.COMM_WORLD.rank == 0:
+            values = [v for v in values if np.all(~np.isnan(v))]
+            values = np.vstack(values)
+            minx = np.min(values[:, 0])
+            miny = np.min(values[:, 1])
+            maxx = np.max(values[:, 2])
+            maxy = np.max(values[:, 3])
+        values = MPI.COMM_WORLD.bcast(((minx, miny), (maxx, maxy)), root=0)
+        return values
