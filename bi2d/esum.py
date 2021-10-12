@@ -32,7 +32,7 @@ class Esum():
         for name, expr, V in [("Eperp_re", self.solution.Ediv_perp_re+self.solution.ecurl_perp_re, Vperp),
                               ("Eperp_im", self.solution.Ediv_perp_im+self.solution.ecurl_perp_im, Vperp),
                               ("Ez_re", self.solution.Ediv_z_re+self.solution.ecurl_z_re, Vz),
-                              ("Ez_im", self.solution.Ediv_z_im+self.solution.ecurl_z_im, Vz),]:
+                              ("Ez_im", self.solution.Ediv_z_im+self.solution.ecurl_z_im, Vz)]:
             u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
             a_p = inner(v, u) * dx
             L_p = inner(v, expr) * dx

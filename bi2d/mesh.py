@@ -43,12 +43,6 @@ class Mesh:
         subdomain_indices = self.subdomains.indices[self.subdomains.values == index]
         geometry_indices = np.unique(np.array([self.mesh.geometry.dofmap.links(i) for i in subdomain_indices])
                                      .flatten())
-        # geometry_points = self.mesh.geometry.x[geometry_indices]
-        # minx = np.min(geometry_points[:, 0])
-        # maxx = np.max(geometry_points[:, 0])
-        # miny = np.min(geometry_points[:, 1])
-        # maxy = np.max(geometry_points[:, 1])
-        # return ((minx, miny), (maxx, maxy))
         if geometry_indices.size > 0:
             geometry_points = self.mesh.geometry.x[geometry_indices]
             minx = np.min(geometry_points[:, 0])
@@ -68,5 +62,4 @@ class Mesh:
             miny = np.min(values[:, 1])
             maxx = np.max(values[:, 2])
             maxy = np.max(values[:, 3])
-        values = MPI.COMM_WORLD.bcast(((minx, miny), (maxx, maxy)), root=0)
-        return values
+        return MPI.COMM_WORLD.bcast(((minx, miny), (maxx, maxy)), root=0)

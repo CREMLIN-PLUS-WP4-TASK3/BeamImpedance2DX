@@ -3,6 +3,7 @@
 import logging
 import dolfinx
 import ufl
+from ufl import dx
 import numpy as np
 from mpi4py import MPI
 from petsc4py import PETSc
@@ -33,8 +34,6 @@ class Solution():
         self.Hcurl_vis = ufl.VectorElement(ufl.FiniteElement("Lagrange", material_map.mesh.mesh.ufl_cell(),
                                                              Hcurl_order+1),
                                            dim=2)
-        # Solution type flag
-        self._monopole = True
         # Solver setup
         self.solver = PETSc.KSP().create(MPI.COMM_WORLD)
         self._solver_prefix = "bi2d_solver"
@@ -63,6 +62,12 @@ class Solution():
         self._E_stale = True
         # Beam center coordinate
         self.beam_center = (0.0, 0.0)
+        # Solution type flag
+        self._monopole = True
+        # Monopole charge
+        self.q = 0.0
+        # Dipole moment
+        self.dm = 0.0
         # Attributes for self.get_z function
         self.__bcs = None
         self.__Js_solver = None
@@ -148,10 +153,6 @@ class Solution():
         E_z_im = self.Ediv_z_im + self.ecurl_z_im
 
         if self._monopole:
-            q = dolfinx.fem.assemble_scalar(self.Js * ufl.dx)
-            q = np.sum(MPI.COMM_WORLD.gather(q))
-            q = MPI.COMM_WORLD.bcast(q)
-
             r"""
             $$
             \underline{Z}_\parallel(\omega)
@@ -161,16 +162,11 @@ class Solution():
             \right)
             $$
             """
-            Zre = dolfinx.fem.assemble_scalar(-1 / q ** 2 *
-                                              ufl.inner(E_z_re, self.Js) * ufl.dx)
-            Zim = dolfinx.fem.assemble_scalar(-1 / q ** 2 *
-                                              ufl.inner(E_z_im, self.Js) * ufl.dx)
+            Zre = dolfinx.fem.assemble_scalar(-1 / self.q ** 2 *
+                                              ufl.inner(E_z_re, self.Js) * dx)
+            Zim = dolfinx.fem.assemble_scalar(-1 / self.q ** 2 *
+                                              ufl.inner(E_z_im, self.Js) * dx)
         else:
-            x = ufl.SpatialCoordinate(self.Ediv_z_re.function_space)
-            position_function_2 = (x[0] - self.beam_center[0])**2 + (x[1] - self.beam_center[1])**2
-            dip_mom_2 = dolfinx.fem.assemble_scalar(ufl.inner(position_function_2, self.Js**2) * ufl.dx)
-            dip_mom_2 = np.sum(MPI.COMM_WORLD.gather(dip_mom_2))
-            dip_mom_2 = MPI.COMM_WORLD.bcast(dip_mom_2)
             r"""
             $$
             \underline{Z}_\perp(\omega)
@@ -180,10 +176,10 @@ class Solution():
             \right)
             $$
             """
-            Zre = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / dip_mom_2 / self._omega *
-                                              ufl.inner(E_z_re, self.Js) * ufl.dx)
-            Zim = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / dip_mom_2 / self._omega *
-                                              ufl.inner(E_z_im, self.Js) * ufl.dx)
+            Zre = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / self.dm**2 / self._omega *
+                                              ufl.inner(E_z_re, self.Js) * dx)
+            Zim = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / self.dm**2 / self._omega *
+                                              ufl.inner(E_z_im, self.Js) * dx)
         _Zre = MPI.COMM_WORLD.gather(Zre)
         _Zim = MPI.COMM_WORLD.gather(Zim)
         if MPI.COMM_WORLD.rank == 0:
