@@ -1563,49 +1563,49 @@ $$
 <!-- 9 -->
 $$
 B^{\Re\Re}_{\perp z}
-=\int_{\partial\Omega}{v^\Re\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Re_\perp\vec{\tau}\;dS}
+=\int_{\partial\Omega}{v^\Re\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Re_\perp\;dS}
 $$
 
 <!-- 10 -->
 $$
 B^{\Im\Re}_{\perp z}
-=\int_{\partial\Omega}{v^\Re\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Im_\perp\vec{\tau}\;dS}
+=\int_{\partial\Omega}{v^\Re\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Im_\perp\;dS}
 $$
 
 <!-- 11 -->
 $$
 B^{\Re\Re}_{z z}
-=-\int_{\partial\Omega}{v^\Re\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Re\right)\vec{\tau}\;dS}
+=-\int_{\partial\Omega}{v^\Re\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;dS}
 $$
 
 <!-- 12 -->
 $$
 B^{\Im\Re}_{z z}
-=\int_{\partial\Omega}{v^\Re\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Im\right)\vec{\tau}\;dS}
+=\int_{\partial\Omega}{v^\Re\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;dS}
 $$
 
 <!-- 13 -->
 $$
 B^{\Re\Im}_{\perp z}
-=-\int_{\partial\Omega}{v^\Im\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Re_\perp\vec{\tau}\;dS}
+=-\int_{\partial\Omega}{v^\Im\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Re_\perp\;dS}
 $$
 
 <!-- 14 -->
 $$
 B^{\Im\Im}_{\perp z}
-=\int_{\partial\Omega}{v^\Im\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Im_\perp\vec{\tau}\;dS}
+=\int_{\partial\Omega}{v^\Im\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Im_\perp\;dS}
 $$
 
 <!-- 15 -->
 $$
 B^{\Re\Im}_{z z}
-=-\int_{\partial\Omega}{v^\Im\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Re\right)\vec{\tau}\;dS}
+=-\int_{\partial\Omega}{v^\Im\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;dS}
 $$
 
 <!-- 16 -->
 $$
 B^{\Im\Im}_{z z}
-=-\int_{\partial\Omega}{v^\Im\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Im\right)\vec{\tau}\;dS}
+=-\int_{\partial\Omega}{v^\Im\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;dS}
 $$
 
 $E_{div}$ terms
@@ -1703,3 +1703,119 @@ $$\begin{align}
 +j\int_{\Omega}{\vec{E}^\Im \vec{J}_\perp^\Re \delta \;d\Omega}
 \right)
 \end{align}$$
+
+## SIBC
+
+When calculation domain is enclosed in perfectly conducting material (PEC), tangential electric field
+$\vec{\underline{E}}_\tau=0$.
+When using [Nédélec (first kind)](https://defelement.com/elements/nedelec1.html) finite elements, this condition may be
+enforces by setting zero Dirichlet boundary conditions.
+This also eliminates all the boundary integrals.
+
+Skin depth of a metal is given by
+$$\delta=\sqrt{\frac{2}{\mu_0\omega\sigma}}$$
+Impedance of the metal surface is
+$$Z=\frac{E_x}{H_y}=(1+j)\sqrt{\frac{\mu\omega}{2\sigma}}$$
+Writing down Faraday's law and applying curl decomposition
+$$\nabla\times\vec{\underline{E}}=-j\omega\mu\vec{\underline{H}}$$
+$$j\hat{Z}\vec{\underline{E}}_\perp+\hat{A}\vec{\underline{E}}_\perp+\hat{B}\underline{E}_z
+=-j\omega\mu\vec{\underline{H}}$$
+Extracting tangential and $\vec{e}_z$ field parts
+$$j\hat{Z}\vec{\underline{E}}_\tau+\hat{A}\underline{E}_z
+=-j\omega\mu\vec{\underline{H}}_\tau$$
+$$\hat{B}\vec{\underline{E}}_\tau=-j\omega\mu\underline{H}_z$$
+Noticing that term $j\hat{Z}\vec{E}_\tau$ is normal to the boundary and therefore will not contribute to the boundary integral.
+$$\begin{align}
+\hat{A}\underline{E}_z\vec{\tau}=-j\omega\mu\vec{\underline{H}}_\tau
+&=-\frac{j\omega\mu}{(1+j)\sqrt{\frac{\mu\omega}{2\sigma}}}\vec{\underline{E}}_z
+=-\frac{j\omega\mu\sqrt{2\sigma}}{(1+j)\sqrt{\omega\mu}}\vec{\underline{E}}_z
+=-\frac{2j\sqrt{\omega\mu\sigma}}{(1+j)\sqrt{2}}\vec{\underline{E}}_z
+=-\frac{2j}{(1+j)\delta}\vec{\underline{E}}_z \\
+&=-\frac{2j(1-j)}{(1+j)(1-j)\delta}\vec{\underline{E}}_z
+=-\frac{2j+2}{(1^2-j^2)\delta}\vec{\underline{E}}_z
+=-\frac{j+1}{\delta}\vec{\underline{E}}_z
+\end{align}$$
+$$\hat{B}\vec{\underline{E}}_\perp=-j\omega\mu\underline{H}_z
+=-\frac{j+1}{\delta}\underline{E}_\perp$$
+where $\delta=\sqrt{\frac{2}{\omega\mu\sigma}}$ is a skin depth.
+Now, applying these equations to $[M_{SIBC}]$ matrix terms.
+
+<!-- 1 -->
+$$
+\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)\left(\nu^\Re\hat{\operatorname{B}}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
+=-\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)\left(\frac{\nu^\Re}{\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
+-\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)\left(\frac{\nu^\Re}{\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
+$$
+
+<!-- 2 -->
+$$
+-\int_{\partial\Omega}{\vec{w}^\Re\left(\nu^\Im\hat{\operatorname{B}}\vec{E}_\perp^\Im\right)\vec{\tau}\;dS}
+=\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)\left(\frac{\nu^\Im}{\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
++\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)\left(\frac{\nu^\Im}{\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
+$$
+
+<!-- 5 -->
+$$
+\int_{\partial\Omega}{\vec{w}^\Im\left(\nu^\Im\hat{\operatorname{B}}\vec{E}_\perp^\Re\right)\vec{\tau}\;dS}
+=-\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)\left(\frac{\nu^\Im}{\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
+-\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)\left(\frac{\nu^\Im}{\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
+$$
+
+<!-- 6! -->
+$$
+\int_{\partial\Omega}{\vec{w}^\Im\left(\nu^\Re\hat{\operatorname{B}}\vec{E}_\perp^\Im\right)\vec{\tau}\;dS}
+=-\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)\left(\frac{\nu^\Re}{\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
+-\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)\left(\frac{\nu^\Re}{\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
+$$
+
+<!-- 9 -->
+$$
+\int_{\partial\Omega}{v^\Re\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Re_\perp\vec{\tau}\;dS}=0
+$$
+
+<!-- 10 -->
+$$
+\int_{\partial\Omega}{v^\Re\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Im_\perp\vec{\tau}\;dS}=0
+$$
+
+<!-- 11 -->
+$$
+-\int_{\partial\Omega}{v^\Re\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;dS}
+=\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Re\right)\;dS}
++\int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Re\right)\;dS}
+$$
+
+<!-- 12 -->
+$$
+\int_{\partial\Omega}{v^\Re\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;dS}
+=-\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Im}{\delta}\vec{E}_z^\Im\right)\;dS}
+-\int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Im}{\delta}\vec{E}_z^\Im\right)\;dS}
+$$
+
+<!-- 13 -->
+$$
+-\int_{\partial\Omega}{v^\Im\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Re_\perp\;dS}
+=0
+$$
+
+<!-- 14 -->
+$$
+\int_{\partial\Omega}{v^\Im\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Im_\perp\;dS}
+=0
+$$
+
+<!-- 15 -->
+$$
+-\int_{\partial\Omega}{v^\Im\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;dS}
+=\int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Im}{\delta}\vec{E}_z^\Re\right)\;dS}
++\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Im}{\delta}\vec{E}_z^\Re\right)\;dS}
+$$
+
+<!-- 16! -->
+$$
+-\int_{\partial\Omega}{v^\Im\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;dS}
+=\int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Im\right)\;dS}
++\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Im\right)\;dS}
+$$
+
+These boundary conditions are needed to simulate metal walls, so terms with imaginary permeability may be dropped.

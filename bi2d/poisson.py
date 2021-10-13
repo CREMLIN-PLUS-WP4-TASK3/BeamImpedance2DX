@@ -7,38 +7,11 @@ import numpy as np
 from petsc4py import PETSc
 from mpi4py import MPI
 
-from .curl import BoundaryType
-
 
 class Ediv():
     """Irrotational electric field solver."""
 
-    def __set_bc(self, V, bcs, value=0.0):
-        u_bc = dolfinx.Function(V)
-        bc_dofs = []
-        for boundary_index, boundary_type in bcs:
-            if boundary_type == BoundaryType.DIRICHLET:
-                if boundary_index == -1:
-                    bc_facets = np.where(
-                        np.array(dolfinx.cpp.mesh.compute_boundary_facets(self.mesh.mesh.topology)) == 1)[0]
-                    dofs = dolfinx.fem.locate_dofs_topological(V,
-                                                               self.mesh.mesh.topology.dim-1,
-                                                               bc_facets)
-                else:
-                    dofs = dolfinx.fem.locate_dofs_topological(V,
-                                                               self.mesh.mesh.topology.dim-1,
-                                                               self.mesh.get_boundary(boundary_index))
-                bc_dofs.append(dofs)
-
-        bc_dofs = np.hstack(bc_dofs)
-        with u_bc.vector.localForm() as loc:
-            loc.setValues(bc_dofs, np.full(bc_dofs.size, value))
-
-        u_bc.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
-
-        return dolfinx.DirichletBC(u_bc, bc_dofs)
-
-    def __init__(self, solution, bcs=[(-1, BoundaryType.DIRICHLET)]):
+    def __init__(self, solution):
         """Initialize."""
         self.material_map = solution.material_map
         self.mesh = solution.mesh
@@ -96,7 +69,15 @@ class Ediv():
 
         self._A_phi = dolfinx.fem.create_matrix(self._a_phi)
         self._b_phi = dolfinx.fem.create_vector(self._L_phi)
-        self._bc = self.__set_bc(V, bcs)
+
+        u_bc = dolfinx.Function(V)
+        bc_facets = np.where(np.array(dolfinx.cpp.mesh.compute_boundary_facets(self.mesh.mesh.topology)) == 1)[0]
+        bc_dofs = dolfinx.fem.locate_dofs_topological(V, self.mesh.mesh.topology.dim-1, bc_facets)
+        with u_bc.vector.localForm() as loc:
+            loc.setValues(bc_dofs, np.full(bc_dofs.size, 0))
+        u_bc.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
+        self._bc = dolfinx.DirichletBC(u_bc, bc_dofs)
+
         self._phi = dolfinx.Function(V)
         self.solution.Phi_re, self.solution.Phi_im = self._phi.split()
         # FIXME: workaround for https://github.com/FEniCS/dolfinx/issues/1577

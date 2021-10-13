@@ -14,10 +14,8 @@ class Material():
 
     def __init__(self, index, name=None, eps_r=1, sigma=0, mu_r_re=1, mu_r_im=0):
         """Initialize."""
-        if not isinstance(index, int) or index < 0:
-            raise(ValueError("Index must be a positive integer"))
-        self.index = index
-        self.name = name if name is not None else f"material_{index}"
+        self.__setattr("index", index)
+        self.__setattr("name", name if name is not None else f"material_{index}")
         for n in ["eps_r", "sigma", "mu_r_re", "mu_r_im"]:
             value = locals()[n]
             if not isinstance(value, Number) and \
@@ -28,14 +26,23 @@ class Material():
                 raise(AttributeError(f"""Invalid value of argument {n}. \
 Should be a number or a function with signature [freq:float] -> val:float or \
 [x:float, y:float] -> val:float or [x:float, y:float, freq:float] -> val:float"""))
-            setattr(self, n, value)
-            setattr(self, n + "_dispersive",
-                    (type(value).__name__ == "function" or
-                     type(value).__name__ == "method") and
-                    (len(signature(value).parameters) == 1 or
-                     len(signature(value).parameters) == 3))
-        self.real_mu = mu_r_im == 0
-        self.real_eps = sigma == 0
+            self.__setattr(n, value)
+            self.__setattr(n + "_dispersive",
+                           (type(value).__name__ == "function" or
+                            type(value).__name__ == "method") and
+                           (len(signature(value).parameters) == 1 or
+                            len(signature(value).parameters) == 3))
+        self.__setattr("real_mu", mu_r_im == 0)
+        self.__setattr("real_eps", sigma == 0)
+
+    def __setattr__(self, name, value):
+        if name == "index":
+            self.__setattr(name, value)
+        else:
+            raise AttributeError(f"Cannot set `{name}` attribute. All attributes except for `index` are read only.")
+
+    def __setattr(self, name, value):
+        super().__setattr__(name, value)
 
     def copy(self):
         """Create a copy of a material"""

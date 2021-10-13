@@ -1,47 +1,74 @@
 """Curl definition."""
 
-from enum import Enum, auto
+from inspect import signature
 import dolfinx
 import ufl
-from ufl import inner, dx
+from ufl import inner, dx, dot
 import numpy as np
 from petsc4py import PETSc
 from mpi4py import MPI
 
 
-class BoundaryType(Enum):
-    """Boundary type."""
-
-    DIRICHLET = auto()
-    SIBC = auto()
-
-
 class Ecurl():
     """Solenoidal electric field solver."""
 
-    def __set_bc(self, V, bcs, value=0):
-        u_bc = dolfinx.Function(V)
-        bc_dofs = []
-        for boundary_index, boundary_type in bcs:
-            if boundary_type == BoundaryType.DIRICHLET:
-                if boundary_index == -1:
-                    bc_facets = np.where(
-                        np.array(dolfinx.cpp.mesh.compute_boundary_facets(self.mesh.mesh.topology)) == 1)[0]
-                    dofs = dolfinx.fem.locate_dofs_topological(V,
-                                                               self.mesh.mesh.topology.dim-1,
-                                                               bc_facets)
-                else:
-                    dofs = dolfinx.fem.locate_dofs_topological(V,
-                                                               self.mesh.mesh.topology.dim-1,
-                                                               self.mesh.get_boundary(boundary_index))
-                bc_dofs.append(dofs)
+    def __set_dirichlet(self, V, sibc):
+        if -1 in [bc.index for bc in sibc]:
+            # assigned SIBC to all boundaries
+            return []
 
-        bc_dofs = np.hstack(bc_dofs)
-        with u_bc.vector.localForm() as loc:
-            loc.setValues(bc_dofs, np.full(bc_dofs.size, value))
-        u_bc.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
+        bc_dofs = np.array([])
+        bc_facets = np.where(np.array(dolfinx.cpp.mesh.compute_boundary_facets(self.mesh.mesh.topology)) == 1)[0]
+        bc_dofs = dolfinx.fem.locate_dofs_topological(V, self.mesh.mesh.topology.dim-1, bc_facets)
 
-        return dolfinx.DirichletBC(u_bc, bc_dofs)
+        # remove SIBC regions
+        for bc in sibc:
+            dofs = dolfinx.fem.locate_dofs_topological(V, self.mesh.mesh.topology.dim-1,
+                                                       self.mesh.get_boundary(bc.index))
+            bc_dofs = np.setdiff1d(bc_dofs, dofs)
+
+        if bc_dofs.size == 0:
+            return []
+        else:
+            u_bc = dolfinx.Function(V)
+            with u_bc.vector.localForm() as loc:
+                loc.setValues(bc_dofs, np.full(bc_dofs.size, 0))
+            u_bc.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
+            return [dolfinx.DirichletBC(u_bc, bc_dofs)]
+
+    def __create_sibc_measures(self, bcs):
+        if len(bcs) == 0:
+            return [], []
+        if -1 in [bc.index for bc in bcs]:
+            # assign SIBC to all boundaries
+            measures = [ufl.ds]
+            materials = [bc.material for bc in bcs if bc.index == -1]
+            deltas = [dolfinx.Constant(self.mesh.mesh, 0)]
+        else:
+            if self.material_map.mesh.boundaries is None:
+                raise ValueError("Boundary data was not loaded")
+            for bc in bcs:
+                if bc.index not in self.material_map.mesh.boundaries.values:
+                    raise ValueError(f"Boundary data does not have index {bc.index}")
+
+            ds = ufl.Measure('ds', domain=self.material_map.mesh.mesh,
+                             subdomain_data=self.material_map.mesh.boundaries)
+            measures = [ds(bc.index) for bc in bcs]
+            materials = [bc.material for bc in bcs]
+            deltas = [dolfinx.Constant(self.mesh.mesh, 0) for _ in bcs]
+        return measures, zip(deltas, materials)
+
+    def __set_skin_depth_from_material(self, delta, material, omega):
+        if isinstance(material.sigma, Number):
+            sigma = material.sigma
+        elif ((type(material.sigma).__name__ == "function" or
+               type(material.sigma).__name__ == "method") and
+              (len(signature(material.sigma).parameters) == 1)):
+            sigma = material.sigma(2 * np.pi * omega)
+        else:
+            raise AttributeError("Only constant or dispersive conductivity is allowed for SIBC material")
+
+        delta.value = np.sqrt(2/(omega * self.material_map.mu0 * sigma))
 
     def A(self, scal):
         """Apply A operator."""
@@ -60,7 +87,7 @@ class Ecurl():
         ry = -self.solution._omega / (self.solution._beta * self.solution.c0) * vec[0]
         return ufl.as_vector((rx, ry))
 
-    def __init__(self, solution, bcs=[(-1, BoundaryType.DIRICHLET)]):
+    def __init__(self, solution, sibc=[]):
         """Initialize."""
         self.material_map = solution.material_map
         self.mesh = solution.mesh
@@ -70,6 +97,10 @@ class Ecurl():
             attr = getattr(self.solution, name)
             if attr is None:
                 raise AttributeError(f"{name} function is not available")
+
+        for i in np.unique([bc.index for bc in sibc]):
+            if np.sum([bc.index for bc in sibc] == 1) > 1:
+                raise(IndexError(f"Duplicate use of boundary index {i}"))
 
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Setting curl function")
@@ -339,93 +370,6 @@ class Ecurl():
             """
             self._a_p += inner(v_im, omega_sigma * Ez_re) * dx
 
-        # if self.boundary_type == BoundaryType.SIBC:
-        #     pass
-            r"""
-            $$
-            B^{\Re\Re}_{\perp\perp}
-            =\int_{\partial\Omega}{\vec{w}^\Re\left(\nu^\Re\hat{\operatorname{B}}\vec{E}_\perp^\Re\right)
-            \vec{\tau}\;dS}
-            $$
-            """
-
-            r"""
-            $$
-            B^{\Im\Re}_{\perp\perp}
-            =-\int_{\partial\Omega}{\vec{w}^\Re\left(\nu^\Im\hat{\operatorname{B}}\vec{E}_\perp^\Im\right)\vec{\tau}\;dS}
-            $$
-            """
-
-            r"""
-            $$
-            B^{\Re\Im}_{\perp\perp}
-            =\int_{\partial\Omega}{\vec{w}^\Im\left(\nu^\Im\hat{\operatorname{B}}\vec{E}_\perp^\Re\right)\vec{\tau}\;dS}
-            $$
-            """
-
-            r"""
-            $$
-            B^{\Im\Im}_{\perp\perp}
-            =\int_{\partial\Omega}{\vec{w}^\Im\left(\nu^\Re\hat{\operatorname{B}}\vec{E}_\perp^\Im\right)\vec{\tau}\;dS}
-            $$
-            """
-
-            r"""
-            $$
-            B^{\Re\Re}_{\perp z}
-            =\int_{\partial\Omega}{v^\Re\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Re_\perp\vec{\tau}\;dS}
-            $$
-            """
-
-            r"""
-            $$
-            B^{\Im\Re}_{\perp z}
-            =\int_{\partial\Omega}{v^\Re\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Im_\perp\vec{\tau}\;dS}
-            $$
-            """
-
-            r"""
-            $$
-            B^{\Re\Re}_{z z}
-            =-\int_{\partial\Omega}{v^\Re\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Re\right)\vec{\tau}\;dS}
-            $$
-            """
-
-            r"""
-            $$
-            B^{\Im\Re}_{z z}
-            =\int_{\partial\Omega}{v^\Re\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Im\right)\vec{\tau}\;dS}
-            $$
-            """
-
-            r"""
-            $$
-            B^{\Re\Im}_{\perp z}
-            =-\int_{\partial\Omega}{v^\Im\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Re_\perp\vec{\tau}\;dS}
-            $$
-            """
-
-            r"""
-            $$
-            B^{\Im\Im}_{\perp z}
-            =\int_{\partial\Omega}{v^\Im\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Im_\perp\vec{\tau}\;dS}
-            $$
-            """
-
-            r"""
-            $$
-            B^{\Re\Im}_{z z}
-            =-\int_{\partial\Omega}{v^\Im\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Re\right)\vec{\tau}\;dS}
-            $$
-            """
-
-            r"""
-            $$
-            B^{\Im\Im}_{z z}
-            =-\int_{\partial\Omega}{v^\Im\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Im\right)\vec{\tau}\;dS}
-            $$
-            """
-
         r"""
         $$
         J_s^\Im = -\omega\int_\Omega{v^\Im J_s \;d\Omega}
@@ -506,7 +450,76 @@ class Ecurl():
             """
             self._L_p += -inner(v_im, omega_sigma * self.solution.Ediv_z_re) * dx
 
-        self._bc = self.__set_bc(V, bcs)
+        sibs_measures, self._sibs_deltas = self.__create_sibc_measures(sibc)
+        if len(sibs_measures) > 0:
+            n = ufl.CellNormal(self.material_map.mesh.mesh)
+            tau = ufl.as_vector(-n[1], n[0])
+            for ds, (delta, _) in zip(sibs_measures, self._sibs_deltas):
+                r"""
+                1-1
+                $$
+                -\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)\left(\frac{\nu^\Re}{\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
+                $$
+                """
+                self._a_p += -inner(dot(w_re, tau), nu_re / delta * dot(Eperp_re, tau)) * ds
+
+                r"""
+                1-2
+                $$
+                -\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)\left(\frac{\nu^\Re}{\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
+                $$
+                """
+                self._a_p += -inner(dot(w_im, tau), nu_re / delta * dot(Eperp_re, tau)) * ds
+
+                r"""
+                6-1
+                $$
+                -\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)\left(\frac{\nu^\Re}{\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
+                $$
+                """
+                self._a_p += -inner(dot(w_im, tau), nu_re / delta * dot(Eperp_im, tau)) * ds
+
+                r"""
+                6-2!
+                $$
+                -\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)\left(\frac{\nu^\Re}{\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
+                $$
+                """
+                self._a_p += -inner(dot(w_re, tau), nu_re / delta * dot(Eperp_im, tau)) * ds
+
+                r"""
+                11-1
+                $$
+                \int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Re\right)\;dS}
+                $$
+                """
+                self._a_p += inner(v_re, nu_re / delta * Ez_re) * ds
+
+                r"""
+                11-2
+                $$
+                \int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Re\right)\;dS}
+                $$
+                """
+                self._a_p += inner(v_im, nu_re / delta * Ez_re) * ds
+
+                r"""
+                16-1
+                $$
+                \int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Im\right)\;dS}
+                $$
+                """
+                self._a_p += inner(v_im, nu_re / delta * Ez_im) * ds
+
+                r"""
+                16-2!
+                $$
+                \int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Im\right)\;dS}
+                $$
+                """
+                self._a_p += inner(v_im, nu_re / delta * Ez_re) * ds
+
+        self._bcs = self.__set_dirichlet(V, sibc)
 
         self._A = dolfinx.fem.create_matrix(self._a_p)
         self._b = dolfinx.fem.create_vector(self._L_p)
@@ -537,11 +550,23 @@ class Ecurl():
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Solving curl function")
 
+        for delta, material in self._sibs_deltas:
+            self.__set_skin_depth_from_material(delta, material, self.solution._omega.value)
+
         self.solution._solve(self._a_p, self._L_p, self._A,
-                             self._b, self._Ecurl, bcs=[self._bc],
+                             self._b, self._Ecurl, bcs=self._bcs,
                              petsc_options=petsc_options)
 
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Solved curl function")
 
         self.solution._Ecurl_stale = False
+
+
+class SIBC():
+    """SIBC boundary condition."""
+
+    def __init__(self, material, index=-1):
+        """Initialize."""
+        self.index = index
+        self.material = material

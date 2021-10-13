@@ -5,6 +5,6 @@ from .mesh import Mesh
 from .material import Material, MaterialMap, ArrayInterpolate
 from .solution import Solution
 from .source import SourceFunction
-from .curl import BoundaryType
+from .curl import SIBC
 
-__all__ = [Mesh, Material, MaterialMap, Solution, SourceFunction, BoundaryType, ArrayInterpolate]
+__all__ = [Mesh, Material, MaterialMap, Solution, SourceFunction, ArrayInterpolate, SIBC]

@@ -19,12 +19,12 @@ vacuum2.index = 3
 m = bi2d.Mesh("mesh.xdmf")
 mc = bi2d.MaterialMap(m, [beam, vacuum, vacuum2])
 # Configure solution
-solution = bi2d.Solution(mc, Hcurl_order=2 H1_order=2)
+solution = bi2d.Solution(mc, Hcurl_order=2, H1_order=2)
 # Enable logging
 solution.logger.setLevel(logging.INFO)
 
 # Solve and visualize the fields for one frequency point
-print(solution.get_z([1e5], beta=0.1, source_function=bi2d.SourceFunction.DIPOLE))
+print(solution.get_z([1e5], beta=0.1, source_function=bi2d.SourceFunction.MONOPOLE))
 esum = Esum(solution)  # Sum rotational and irrotational fields
 esum.solve()
 solution.save("solution.xdmf")

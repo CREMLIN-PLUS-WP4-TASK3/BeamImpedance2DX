@@ -10,7 +10,7 @@ from petsc4py import PETSc
 
 from .source import Js, SourceFunction
 from .poisson import Ediv
-from .curl import Ecurl, BoundaryType
+from .curl import Ecurl
 
 
 class Solution():
@@ -191,18 +191,18 @@ class Solution():
         return (Zre, Zim)
 
     def get_z(self, f, beta=1.0,
-              bcs=[(-1, BoundaryType.DIRICHLET)],
+              sibc=[],
               rotation=0, source_function=SourceFunction.MONOPOLE,
               petsc_options={"ksp_type": "preonly", "pc_type": "lu", "pc_factor_mat_solver_type": "mumps"}):
         """Get impedance. High level interface to the library functionality."""
         if self.__Js_solver is None:
             self.__Js_solver = Js(self, rotation=rotation,
                                   source_function=source_function)
-        if self.__Ediv_solver is None or bcs != self.__bcs:
-            self.__Ediv_solver = Ediv(self, bcs=bcs)
-        if self.__Ecurl_solver is None or bcs != self.__bcs:
-            self.__Ecurl_solver = Ecurl(self, bcs=bcs)
-        self.__bcs = bcs
+        if self.__Ediv_solver is None:
+            self.__Ediv_solver = Ediv(self)
+        if self.__Ecurl_solver is None or sibc != self.__sibc:
+            self.__Ecurl_solver = Ecurl(self, sibc=sibc)
+        self.__sibc = sibc
         self.beta = beta
         f = np.array(f)
 
