@@ -1,6 +1,7 @@
 """Curl definition."""
 
 from inspect import signature
+from numbers import Number
 import dolfinx
 import ufl
 from ufl import inner, dx, dot
@@ -32,33 +33,34 @@ class Ecurl():
         else:
             u_bc = dolfinx.Function(V)
             with u_bc.vector.localForm() as loc:
+                loc.set(1)
                 loc.setValues(bc_dofs, np.full(bc_dofs.size, 0))
             u_bc.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
             return [dolfinx.DirichletBC(u_bc, bc_dofs)]
 
-    def __create_sibc_measures(self, bcs):
-        if len(bcs) == 0:
+    def __create_sibc_measures(self, sibc):
+        if len(sibc) == 0:
             return [], []
-        if -1 in [bc.index for bc in bcs]:
+        if -1 in [material.index for material in sibc]:
             # assign SIBC to all boundaries
             measures = [ufl.ds]
-            materials = [bc.material for bc in bcs if bc.index == -1]
+            materials = [material for material in sibc if material.index == -1]
             deltas = [dolfinx.Constant(self.mesh.mesh, 0)]
         else:
             if self.material_map.mesh.boundaries is None:
                 raise ValueError("Boundary data was not loaded")
-            for bc in bcs:
-                if bc.index not in self.material_map.mesh.boundaries.values:
-                    raise ValueError(f"Boundary data does not have index {bc.index}")
+            for material in sibc:
+                if material.index not in self.material_map.mesh.boundaries.values:
+                    raise ValueError(f"No boundary data with index {material.index}")
 
             ds = ufl.Measure('ds', domain=self.material_map.mesh.mesh,
                              subdomain_data=self.material_map.mesh.boundaries)
-            measures = [ds(bc.index) for bc in bcs]
-            materials = [bc.material for bc in bcs]
-            deltas = [dolfinx.Constant(self.mesh.mesh, 0) for _ in bcs]
-        return measures, zip(deltas, materials)
+            measures = [ds(material.index) for material in sibc]
+            materials = [material for material in sibc]
+            deltas = [dolfinx.Constant(self.mesh.mesh, 0) for _ in sibc]
+        return measures, list(zip(deltas, materials))
 
-    def __set_skin_depth_from_material(self, delta, material, omega):
+    def __set_skin_depth_from_material(self, k, material, omega):
         if isinstance(material.sigma, Number):
             sigma = material.sigma
         elif ((type(material.sigma).__name__ == "function" or
@@ -68,7 +70,14 @@ class Ecurl():
         else:
             raise AttributeError("Only constant or dispersive conductivity is allowed for SIBC material")
 
-        delta.value = np.sqrt(2/(omega * self.material_map.mu0 * sigma))
+        r"""
+        $$
+        k=\frac{1}{\mu_0\delta}
+        =\frac{1}{\mu_0\sqrt{\frac{2}{\mu_0\omega\sigma}}}
+        =\sqrt{\frac{\omega\sigma}{2\mu_0}}
+        $$
+        """
+        k.value = np.sqrt((omega * sigma) / (2 * self.material_map.mu0))
 
     def A(self, scal):
         """Apply A operator."""
@@ -101,6 +110,8 @@ class Ecurl():
         for i in np.unique([bc.index for bc in sibc]):
             if np.sum([bc.index for bc in sibc] == 1) > 1:
                 raise(IndexError(f"Duplicate use of boundary index {i}"))
+
+        self.solution._Ecurl_stale = True
 
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Setting curl function")
@@ -450,74 +461,78 @@ class Ecurl():
             """
             self._L_p += -inner(v_im, omega_sigma * self.solution.Ediv_z_re) * dx
 
-        sibs_measures, self._sibs_deltas = self.__create_sibc_measures(sibc)
-        if len(sibs_measures) > 0:
-            n = ufl.CellNormal(self.material_map.mesh.mesh)
-            tau = ufl.as_vector(-n[1], n[0])
-            for ds, (delta, _) in zip(sibs_measures, self._sibs_deltas):
+        sibc_measures, self._sibc_deltas = self.__create_sibc_measures(sibc)
+        if len(sibc_measures) > 0:
+            n = -ufl.FacetNormal(self.material_map.mesh.mesh)
+            tau = ufl.as_vector((-n[1], n[0]))
+            for ds, (k, _) in zip(sibc_measures, self._sibc_deltas):
                 r"""
                 1-1
                 $$
-                -\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)\left(\frac{\nu^\Re}{\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
+                -\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)
+                \left(\frac{1}{\mu_0\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
                 $$
                 """
-                self._a_p += -inner(dot(w_re, tau), nu_re / delta * dot(Eperp_re, tau)) * ds
+                self._a_p += -k * inner(dot(w_re, tau), dot(Eperp_re, tau)) * ds
 
                 r"""
                 1-2
                 $$
-                -\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)\left(\frac{\nu^\Re}{\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
+                -\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)
+                \left(\frac{1}{\mu_0\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
                 $$
                 """
-                self._a_p += -inner(dot(w_im, tau), nu_re / delta * dot(Eperp_re, tau)) * ds
+                self._a_p += -k * inner(dot(w_im, tau), dot(Eperp_re, tau)) * ds
 
                 r"""
                 6-1
                 $$
-                -\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)\left(\frac{\nu^\Re}{\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
+                -\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)
+                \left(\frac{1}{\mu_0\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
                 $$
                 """
-                self._a_p += -inner(dot(w_im, tau), nu_re / delta * dot(Eperp_im, tau)) * ds
+                self._a_p += -k * inner(dot(w_im, tau), dot(Eperp_im, tau)) * ds
 
                 r"""
-                6-2!
+                6-2
                 $$
-                -\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)\left(\frac{\nu^\Re}{\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
+                \int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)
+                \left(\frac{1}{\mu_0\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
                 $$
                 """
-                self._a_p += -inner(dot(w_re, tau), nu_re / delta * dot(Eperp_im, tau)) * ds
+                self._a_p += k * inner(dot(w_re, tau), dot(Eperp_im, tau)) * ds
 
                 r"""
                 11-1
                 $$
-                \int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Re\right)\;dS}
+                \int_{\partial\Omega}{v^\Re\left(\frac{1}{\mu_0\delta}\vec{E}_z^\Re\right)\;dS}
                 $$
                 """
-                self._a_p += inner(v_re, nu_re / delta * Ez_re) * ds
+                self._a_p += k * inner(v_re, Ez_re) * ds
 
                 r"""
                 11-2
                 $$
-                \int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Re\right)\;dS}
+                \int_{\partial\Omega}{v^\Im\left(\frac{1}{\mu_0\delta}\vec{E}_z^\Re\right)\;dS}
                 $$
                 """
-                self._a_p += inner(v_im, nu_re / delta * Ez_re) * ds
+                self._a_p += k * inner(v_im, Ez_re) * ds
 
                 r"""
                 16-1
                 $$
-                \int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Im\right)\;dS}
+                \int_{\partial\Omega}{v^\Im\left(\frac{1}{\mu_0\delta}\vec{E}_z^\Im\right)\;dS}
                 $$
                 """
-                self._a_p += inner(v_im, nu_re / delta * Ez_im) * ds
+                self._a_p += k * inner(v_im, Ez_im) * ds
 
                 r"""
-                16-2!
+                16-2
                 $$
-                \int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Im\right)\;dS}
+                -\int_{\partial\Omega}{v^\Re\left(\frac{1}{\mu_0\delta}\vec{E}_z^\Im\right)\;dS}
                 $$
                 """
-                self._a_p += inner(v_im, nu_re / delta * Ez_re) * ds
+                self._a_p += -k * inner(v_re, Ez_im) * ds
 
         self._bcs = self.__set_dirichlet(V, sibc)
 
@@ -550,8 +565,8 @@ class Ecurl():
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Solving curl function")
 
-        for delta, material in self._sibs_deltas:
-            self.__set_skin_depth_from_material(delta, material, self.solution._omega.value)
+        for k, material in self._sibc_deltas:
+            self.__set_skin_depth_from_material(k, material, self.solution._omega.value)
 
         self.solution._solve(self._a_p, self._L_p, self._A,
                              self._b, self._Ecurl, bcs=self._bcs,
@@ -561,12 +576,3 @@ class Ecurl():
             self.solution.logger.debug("Solved curl function")
 
         self.solution._Ecurl_stale = False
-
-
-class SIBC():
-    """SIBC boundary condition."""
-
-    def __init__(self, material, index=-1):
-        """Initialize."""
-        self.index = index
-        self.material = material

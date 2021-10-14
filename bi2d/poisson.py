@@ -20,6 +20,8 @@ class Ediv():
         if self.solution.Js is None:
             raise AttributeError("Source function Js is not initialized")
 
+        self.solution._Ediv_stale = True
+
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Setting poisson function")
 

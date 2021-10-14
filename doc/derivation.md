@@ -1726,7 +1726,7 @@ $$j\hat{Z}\vec{\underline{E}}_\tau+\hat{A}\underline{E}_z
 $$\hat{B}\vec{\underline{E}}_\tau=-j\omega\mu\underline{H}_z$$
 Noticing that term $j\hat{Z}\vec{E}_\tau$ is normal to the boundary and therefore will not contribute to the boundary integral.
 $$\begin{align}
-\hat{A}\underline{E}_z\vec{\tau}=-j\omega\mu\vec{\underline{H}}_\tau
+\hat{A}\underline{E}_z=-j\omega\mu\vec{\underline{H}}_\tau
 &=-\frac{j\omega\mu}{(1+j)\sqrt{\frac{\mu\omega}{2\sigma}}}\vec{\underline{E}}_z
 =-\frac{j\omega\mu\sqrt{2\sigma}}{(1+j)\sqrt{\omega\mu}}\vec{\underline{E}}_z
 =-\frac{2j\sqrt{\omega\mu\sigma}}{(1+j)\sqrt{2}}\vec{\underline{E}}_z
@@ -1758,14 +1758,14 @@ $$
 $$
 \int_{\partial\Omega}{\vec{w}^\Im\left(\nu^\Im\hat{\operatorname{B}}\vec{E}_\perp^\Re\right)\vec{\tau}\;dS}
 =-\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)\left(\frac{\nu^\Im}{\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
--\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)\left(\frac{\nu^\Im}{\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
++\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)\left(\frac{\nu^\Im}{\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
 $$
 
-<!-- 6! -->
+<!-- 6 -->
 $$
 \int_{\partial\Omega}{\vec{w}^\Im\left(\nu^\Re\hat{\operatorname{B}}\vec{E}_\perp^\Im\right)\vec{\tau}\;dS}
 =-\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)\left(\frac{\nu^\Re}{\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
--\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)\left(\frac{\nu^\Re}{\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
++\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)\left(\frac{\nu^\Re}{\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
 $$
 
 <!-- 9 -->
@@ -1808,14 +1808,15 @@ $$
 $$
 -\int_{\partial\Omega}{v^\Im\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;dS}
 =\int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Im}{\delta}\vec{E}_z^\Re\right)\;dS}
-+\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Im}{\delta}\vec{E}_z^\Re\right)\;dS}
+-\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Im}{\delta}\vec{E}_z^\Re\right)\;dS}
 $$
 
 <!-- 16! -->
 $$
 -\int_{\partial\Omega}{v^\Im\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;dS}
 =\int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Im\right)\;dS}
-+\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Im\right)\;dS}
+-\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Im\right)\;dS}
 $$
 
 These boundary conditions are needed to simulate metal walls, so terms with imaginary permeability may be dropped.
+Real permeability $1/\mu^\Re$ may be substituted with constant $1/\mu_0$.

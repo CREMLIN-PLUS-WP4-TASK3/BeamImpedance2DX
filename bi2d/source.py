@@ -108,6 +108,7 @@ class Js():
         self.material_map = solution.material_map
         self.mesh = solution.mesh
         self.rotation = rotation
+        self.solution._Js_stale = True
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Setting source function")
         self._V = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.H1)

@@ -27,5 +27,4 @@ __all__ = [beam,
            copper_isotropic,
            titanium_isotropic,
            mu8c11,
-           mischung43,
-           amidon43]
+           mischung43]

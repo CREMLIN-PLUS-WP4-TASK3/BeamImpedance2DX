@@ -69,7 +69,8 @@ class Solution():
         # Dipole moment
         self.dm = 0.0
         # Attributes for self.get_z function
-        self.__bcs = None
+        self.__sibc_hash = None
+        self.__source = None
         self.__Js_solver = None
         self.__Ediv_solver = None
         self.__Ecurl_solver = None
@@ -195,14 +196,15 @@ class Solution():
               rotation=0, source_function=SourceFunction.MONOPOLE,
               petsc_options={"ksp_type": "preonly", "pc_type": "lu", "pc_factor_mat_solver_type": "mumps"}):
         """Get impedance. High level interface to the library functionality."""
-        if self.__Js_solver is None:
+        if self.__Js_solver is None or self.__source != hash(tuple([source_function, rotation])):
             self.__Js_solver = Js(self, rotation=rotation,
                                   source_function=source_function)
+            self.__source = hash(tuple([source_function, rotation]))
         if self.__Ediv_solver is None:
             self.__Ediv_solver = Ediv(self)
-        if self.__Ecurl_solver is None or sibc != self.__sibc:
+        if self.__Ecurl_solver is None or hash(tuple(sibc)) != self.__sibc_hash:
             self.__Ecurl_solver = Ecurl(self, sibc=sibc)
-        self.__sibc = sibc
+            self.__sibc_hash = hash(tuple(sibc))
         self.beta = beta
         f = np.array(f)
 
