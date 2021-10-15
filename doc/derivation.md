@@ -344,7 +344,7 @@ $$\nabla\times\underline{\nu}\nabla\times\vec{\underline{E}}_{curl}-\omega^2\var
 
 $$\nabla\times\underline{\nu}\nabla\times\vec{\underline{E}}_{curl}-\omega^2\varepsilon_0\underline{\varepsilon}_r\vec{\underline{E}}_{curl}=\vec{\underline{R}}$$
 
-$$\vec{\underline{R}}=\omega^2\varepsilon_0\underline{\varepsilon}_r\vec{\underline{E}}_{div}-j\omega\vec{\underline{J}_{s}}$$
+$$\vec{\underline{R}}=\omega^2\varepsilon_0\underline{\varepsilon}_r\vec{\underline{E}}_{div}-j\omega\vec{\underline{J}}_{s}$$
 
 Using decomposed curl operator (Uwe:24).
 
