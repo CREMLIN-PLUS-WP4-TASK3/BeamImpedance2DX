@@ -6,7 +6,7 @@ This is a port of <https://bitbucket.org/uniederm/beamimpedance2d/src/master/> p
 It's recommended to use [Docker](https://www.docker.com/) DolfinX image.
 Run jupyter server using the following command:
 ```bash
-> docker run -v $(pwd):/root/shared -w "/root/shared" --rm -p 8888:8888 dolfinx/lab
+docker run --init --rm --name dolfinx -p 8888:8888 -v "$(pwd)":/root/shared dolfinx/lab
 ```
 and follow the link. It will take you to the JupyterLab IDE interface.
 Check out `examples` folder for calculation examples.
@@ -127,6 +127,14 @@ solution = Solution(material_map, H1_order=2, Hcurl_order=2)
 parabolic interpolation etc.
 Higher the polynomial degree, higher the solution precision, bigger the problem size, longer the solution.
 
+After creating a solution object you might want to enable solution logging
+```python
+import logging
+
+solution.logger.setLevel(logging.INFO)
+```
+This will enable information messages about current calculation point.
+
 ### Calculate impedance
 
 There's a high level function for calculating a beam impedance in a frequency range
@@ -144,6 +152,10 @@ If using `bi2d.SourceFunction.DIPOLE` source function, argument `rotation` may b
 
 Surface impedance boundary condition is applied to the physical lines specified in `sibc` list.
 Note that for these materials only conductivity $\sigma$ is used.
+
+There's a shortcut for application of SIBC to all boundaries.
+If you set SIBC material index to `-1`, it will be applied to all the boundaries. And in this case you don't need to
+load boundary data to your model.
 
 ### Visualize the fields
 
