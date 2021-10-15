@@ -230,7 +230,7 @@ class ArrayInterpolate():
     @classmethod
     def from_numpy(cls, array, xi=0, yi=1):
         """Interpolate data from numpy array."""
-        return cls(array[:,0], array[:,1])
+        return cls(array[:, 0], array[:, 1])
 
     @classmethod
     def from_file(cls, f, xi=0, yi=1, delimiter=None):

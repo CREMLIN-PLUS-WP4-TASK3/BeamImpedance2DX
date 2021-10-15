@@ -1,4 +1,5 @@
 include README.md LICENSE contributors.txt
 recursive-include bi2d *.py
+include bi2d/material_files/*
 exclude *.pyc
 exclude *__pycache__

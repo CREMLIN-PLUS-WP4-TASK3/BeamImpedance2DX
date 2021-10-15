@@ -1,47 +1,40 @@
 from setuptools import setup, find_packages
 from codecs import open
-from os import path
-import beadpull.version
-import sys
+from pathlib import Path
+import bi2d.version
 
 
-here = path.abspath(path.dirname(__file__))
-
-if not sys.version_info[0] == 3 and sys.version_info[1] >= 5:
-    sys.exit("Sorry, Python 3.5 or higher only")
+here = Path(__file__).parent.absolute()
 
 # Get the long description from the README file
-with open(path.join(here, "README.md"), encoding="utf-8") as f:
+with open(here / "README.md", encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="beadpull",
-    version=beadpull.version.version,
+    name="BeamImpedance2DX",
+    version=bi2d.version.version,
     author="S.V. Matsievskiy",
     author_email="matsievskiysv@gmail.com",
     maintainer="S.V. Matsievskiy",
     maintainer_email="matsievskiysv@gmail.com",
-    url="https://gitlab.com/matsievskiysv/beadpull",
-    description="Bead pulling measurement software for RF cavity measurements",
+    url="https://gitlab.com/matsievskiysv/bi2d",
+    description="Calculate electromagnetic field and beam impedance in 2D device section",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    license="GPLv3+",
+    license="AGPLv3+",
     classifiers=[
-        "Development Status :: 5 - Production/Stable",
-        "Environment :: X11 Applications :: Qt",
-        "Intended Audience :: End Users/Desktop",
-        "License :: OSI Approved :: GNU General Public \
-License v3 or later (GPLv3+)",
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
         "Operating System :: OS Independent",
-        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3 :: Only",
         "Topic :: Scientific/Engineering :: Physics",
     ],
-    keywords="accelerators particles measurements",
+    keywords="accelerators particles impedance electromagnetic",
     packages=find_packages(
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"]
     ),
     include_package_data=True,
-    install_requires=["numpy", "PyQt5", "PyQtWebEngine", "matplotlib", "pysmithplot-fork", "PyYAML", "PyVISA", "pyvisa-py"],
+    install_requires=["fenics-dolfinx>=0.3.1", "python_version>=3.6"],
     extras_require={"dev": ["check-manifest"]},
-    entry_points={"console_scripts": ["beadpull = beadpull.__main__:main"]},
 )

@@ -1,18 +1,15 @@
 """Curl definition."""
 
-from enum import Enum, auto
 import dolfinx
 import ufl
 from ufl import inner, dx
-import numpy as np
-from petsc4py import PETSc
 from mpi4py import MPI
 
 
 class Esum():
     """Total field."""
 
-    def __init__(self, solution):
+    def __init__(self, solution, H1_order=2, Hcurl_order=2):
         """Initialize."""
         self.solution = solution
         self.mesh = self.solution.mesh
@@ -26,8 +23,10 @@ class Esum():
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Setting field summator")
 
-        Vperp = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.Hcurl_vis)
-        Vz = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.H1_vis)
+        H1 = ufl.FiniteElement("Lagrange", self.mesh.mesh.ufl_cell(), H1_order)
+        Hcurl = ufl.VectorElement(ufl.FiniteElement("Lagrange", self.mesh.mesh.ufl_cell(), Hcurl_order), dim=2)
+        Vperp = dolfinx.FunctionSpace(self.mesh.mesh, Hcurl)
+        Vz = dolfinx.FunctionSpace(self.mesh.mesh, H1)
 
         for name, expr, V in [("Eperp_re", self.solution.Ediv_perp_re+self.solution.ecurl_perp_re, Vperp),
                               ("Eperp_im", self.solution.Ediv_perp_im+self.solution.ecurl_perp_im, Vperp),

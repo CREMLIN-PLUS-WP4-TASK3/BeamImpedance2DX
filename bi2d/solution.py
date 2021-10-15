@@ -29,11 +29,7 @@ class Solution():
         self._beta = dolfinx.Constant(self.mesh.mesh, 1)
         # FEM elements
         self.H1 = ufl.FiniteElement("Lagrange", material_map.mesh.mesh.ufl_cell(), H1_order)
-        self.H1_vis = ufl.FiniteElement("Lagrange", material_map.mesh.mesh.ufl_cell(), H1_order+1)
         self.Hcurl = ufl.FiniteElement("Nedelec 1st kind H(curl)", material_map.mesh.mesh.ufl_cell(), Hcurl_order)
-        self.Hcurl_vis = ufl.VectorElement(ufl.FiniteElement("Lagrange", material_map.mesh.mesh.ufl_cell(),
-                                                             Hcurl_order+1),
-                                           dim=2)
         # Solver setup
         self.solver = PETSc.KSP().create(MPI.COMM_WORLD)
         self._solver_prefix = "bi2d_solver"

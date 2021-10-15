@@ -1,252 +1,166 @@
-# Description
+This program solves Maxwell's equations for the 2D device sections and calculates monopole and dipole beam impedance.
+This is a port of <https://bitbucket.org/uniederm/beamimpedance2d/src/master/> program to [FEniCSx](https://fenicsproject.org/).
 
-This is a port of <https://bitbucket.org/uniederm/beamimpedance2d/src/master/> program.
+# Installation
 
+It's recommended to use [Docker](https://www.docker.com/) DolfinX image.
 Run jupyter server using the following command:
 ```bash
 > docker run -v $(pwd):/root/shared -w "/root/shared" --rm -p 8888:8888 dolfinx/lab
 ```
-
-<!-- # Installation -->
-
-<!-- ## Get python and pip -->
-
-<!-- Download and install python and pip. -->
-
-<!-- You may use a package manager for this. For example, in Debian installation command looks like this: -->
-
-<!-- `sudo apt-get install python3 python3-pip` -->
-
-<!-- If you don't have a package manager, download installer from the [python web site](https://www.python.org/downloads/). -->
-
-<!-- You will need to install either *NI* drivers (for Windows installations) or *Linux-GPIB* drivers. -->
-
-<!-- ## Install *NI* drivers -->
-
-<!-- If you need to use *NI* drivers, use [this manual](https://pyvisa.readthedocs.io/en/latest/faq/getting_nivisa.html#faq-getting-nivisa) for installation. -->
-
-<!-- ## Install *Linux-GPIB* drivers -->
-
-<!-- In order to use [*Linux-GPIB*](https://linux-gpib.sourceforge.io/) drivers, one must compile them and install python bindings. -->
-
-<!-- *Note. Drivers are build for current *Linux* kernel. So, after kernel update one needs to recompile GPIB drivers.* -->
-
-<!-- ### Getting sources -->
-
-<!-- In order to proceed, you will need to install additional programs: -->
-<!-- ```bash -->
-<!-- apt install -y git git-svn -->
-<!-- ``` -->
-
-<!-- Getting the latest sources: -->
-<!-- ```bash -->
-<!-- git svn clone -r HEAD https://svn.code.sf.net/p/linux-gpib/code/trunk linux-gpib-code -->
-<!-- ``` -->
-
-<!-- Now you have the latest sources of *Linux-GPIB*: -->
-<!-- ```bash -->
-<!-- cd linux-gpib-code -->
-<!-- ``` -->
-
-<!-- ### Compiling drivers -->
-
-<!-- For driver compilation you will need Linux sources: -->
-<!-- ```bash -->
-<!-- sudo apt install linux-source -->
-<!-- ``` -->
-
-<!-- ```bash -->
-<!-- cd linux-gpib-kernel -->
-<!-- ``` -->
-
-<!-- Issue following command to start compilation: -->
-
-<!-- ```bash -->
-<!-- make -->
-<!-- ``` -->
-
-<!-- And then: -->
-
-<!-- ```bash -->
-<!-- make install -->
-<!-- ``` -->
-
-<!-- That's it for driver compilation. Return one folder back. -->
-
-<!-- ```bash -->
-<!-- cd .. -->
-<!-- ``` -->
-
-<!-- ### Compiling userspace utilities -->
-
-<!-- ```bash -->
-<!-- cd linux-gpib-user -->
-<!-- ``` -->
-
-<!-- Since we use source from project repo, we need to prepare [autotools](https://www.gnu.org/software/automake/) installation scripts: -->
-
-<!-- ```bash -->
-<!-- apt install autotools-dev -->
-<!-- ./bootstrap -->
-<!-- ./configure --sysconfdir=/etc -->
-<!-- make -->
-<!-- make install -->
-<!-- ``` -->
-
-<!-- ### Installing Python3 bindings -->
-
-<!-- Go to python bindings folder: -->
-<!-- ```bash -->
-<!-- cd language/python -->
-<!-- ``` -->
-
-<!-- Creating and installing Python3 module: -->
-<!-- ```bash -->
-<!-- python3 setup.py sdist -->
-<!-- pip3 install dist/*.tar.gz -->
-<!-- ``` -->
-
-<!-- ### Configuring GPIB device -->
-
-<!-- Download GPIB board firmware form <https://linux-gpib.sourceforge.io/firmware/>. -->
-
-<!-- Later in this document `agilent_82350a` device will be used. -->
-<!-- Firmware archive is assumed to be located in `~/Downloads/` folder. -->
-
-<!-- Configure your board in `/etc/gpib.conf`. Consult [configuration manual](https://linux-gpib.sourceforge.io/doc_html/configuration-gpib-conf.html). -->
-<!-- Configuration will look something like this: -->
-<!-- ```ini -->
-<!-- interface { -->
-<!--         minor = 0       /* board index, minor = 0 uses /dev/gpib0, minor = 1 uses /dev/gpib1, etc. */ -->
-<!--         board_type = "agilent_82350b"   /* type of interface board being used */ -->
-<!--         name = "violet" /* optional name, allows you to get a board descriptor using ibfind() */ -->
-<!--         pad = 0 /* primary address of interface             */ -->
-<!--         sad = 0 /* secondary address of interface           */ -->
-<!--         timeout = T3s   /* timeout for commands */ -->
-
-<!--         eos = 0x0a      /* EOS Byte, 0xa is newline and 0xd is carriage return -->
-<!-- */ -->
-<!--         set-reos = yes  /* Terminate read if EOS */ -->
-<!--         set-bin = no    /* Compare EOS 8-bit */ -->
-<!--         set-xeos = no   /* Assert EOI whenever EOS byte is sent */ -->
-<!--         set-eot = yes   /* Assert EOI with last byte on writes */ -->
-
-<!-- /* settings for boards that lack plug-n-play capability */ -->
-<!--         base = 0        /* Base io ADDRESS                  */ -->
-<!--         irq  = 0        /* Interrupt request level */ -->
-<!--         dma  = 0        /* DMA channel (zero disables)      */ -->
-<!-- } -->
-
-<!-- device { -->
-<!--         minor = 0       /* minor number for interface board this device is connected to */ -->
-<!--         name = "analyzer"       /* device mnemonic */ -->
-<!--         pad = 7 /* The Primary Address */ -->
-<!--         sad = 0 /* Secondary Address */ -->
-<!--         timeout = T3s -->
-
-<!--         eos = 0xa       /* EOS Byte */ -->
-<!--         set-reos = no /* Terminate read if EOS */ -->
-<!--         set-bin = no /* Compare EOS 8-bit */ -->
-<!-- } -->
-<!-- ``` -->
-
-<!-- Upload board firmware, if necessary: -->
-<!-- ```bash -->
-<!-- sudo gpib_config --init-data ~/Downloads/gpib_firmware-2008-08-10/hp_82350a/agilent_82350a.bin -->
-<!-- ``` -->
-
-<!-- ### Configure udev rules -->
-
-<!-- Some boards require firmware upload on every start. -->
-<!-- Also, superuser privileges are required for communication with device. -->
-<!-- In order to remove these problems, lets add udev rule for device. -->
-
-<!-- Firstly, lets create new group, which will be able to use GPIB devices: -->
-<!-- ```bash -->
-<!-- addgroup gpib -->
-<!-- ``` -->
-
-<!-- Copy your device's firmware to `/usr/local/sbin`. -->
-<!-- Command will look something like this: -->
-<!-- ```bash -->
-<!-- cp Downloads/gpib_firmware-2008-08-10/hp_82350a/agilent_82350a.bin /usr/local/sbin/ -->
-<!-- ``` -->
-<!-- Then, create a file `/usr/local/sbin/load_agilent` with contents: -->
-<!-- ```bash -->
-<!-- #!/bin/bash -->
-
-<!-- gpib_config --init-data /usr/local/sbin/agilent_82350a.bin -->
-<!-- ``` -->
-
-<!-- And allow its execution: -->
-<!-- ```bash -->
-<!-- chmod 755 /usr/local/sbin/load_agilent -->
-<!-- ``` -->
-
-<!-- Add the following line to the `/etc/udev/rules.d/99-gpib.rules` file: -->
-<!-- ```udev -->
-<!-- KERNEL=="gpib0", SUBSYSTEM=="gpib_common", GROUP="gpib", MODE="0660", RUN+="/usr/local/sbin/load_agilent" -->
-<!-- ``` -->
-
-<!-- Now device will be available for users in group `gpib`, its firmware will be automatically loaded. -->
-
-<!-- ## Install *BeadPull* -->
-
-<!-- From the terminal issue the command -->
-
-<!-- `pip3 install beadpull` -->
-
-<!-- for system-wide installation, or -->
-
-<!-- `pip3 install --user beadpull` -->
-
-<!-- for the local installation. -->
-
-<!-- ### Add user to device communication groups [Optional] -->
-
-<!-- *Gnu/Linux* distributions restrict access to peripheral devices. -->
-
-<!-- To grant access to serial devices to user, issue command: -->
-<!-- ``` -->
-<!-- adduser user dialout -->
-<!-- ``` -->
-<!-- USB devices: -->
-<!-- ``` -->
-<!-- adduser user plugdev -->
-<!-- ``` -->
-<!-- GPIB devices (if configured): -->
-<!-- ``` -->
-<!-- adduser user gpib -->
-<!-- ``` -->
-
-<!-- # Run -->
-
-<!-- In order to run the program, from the terminal issue the command -->
-
-<!-- `beadpull` -->
-
-<!-- If it's not found, you have to modify the `PATH` environment variable to include the python scripts folder ([unix guide](https://stackoverflow.com/a/3402176/5745120),[windows guide](https://superuser.com/a/143121/736971)) or supply the full path to the program. -->
-
-<!-- # Other -->
-
-<!-- ## Update *beadpull* -->
-
-<!-- To update program, from the terminal issue the command -->
-
-<!-- `pip3 install --upgrade beadpull` -->
-
-<!-- for system-wide installation, or -->
-
-<!-- `pip3 install --upgrade --user beadpull` -->
-
-<!-- for the local installation. -->
-
-<!-- ## Reset *beadpull* settings to defaults -->
-
-<!-- Program saves its settings under -->
-<!-- `APPDATA/beadupll` on Windows and `$XDG_CONFIG_HOME/beadpull` or `$HOME/.config/beadpull` on other systems. -->
-<!-- In order to reset settings, simply delete saved settings folder. -->
-
-<!-- ## Issue submission -->
-
-<!-- In case of a problem with the program, create an issue in the [issue tracker](https://gitlab.com/matsievskiysv/beadpull/issues). -->
+and follow the link. It will take you to the JupyterLab IDE interface.
+Check out `examples` folder for calculation examples.
+
+In order to generate calculation meshes and visualize the simulated electromagnetic fields use
+[Gmsh](https://gmsh.info/) and [ParaView](https://www.paraview.org/).
+
+# Workflow
+
+Basic workflow is this:
+1. Create geometry using [Gmsh](https://gmsh.info/)
+1. Assign [physical region](https://gmsh.info/doc/texinfo/gmsh.html#t1) numbers to beam and material regions and surface
+   impedance boundaries.
+1. Generate mesh
+1. Convert mesh to XDMF format
+1. In Python assign materials to material regions and boundaries
+1. Calculate the problem
+
+Now, we will talk about these steps in more detail.
+
+## Creating geometry
+
+Creating geometries in Gmsh takes a bit getting used to but it's not that complicated for the 2D structures.
+Go through the [Gmsh tutorial](https://gmsh.info/doc/texinfo/gmsh.html#Tutorial) pages (at the very least through the
+first one) to get aquatinted with Gmsh syntax.
+
+## Assign physical region numbers
+
+Assigning physical regions is done using commands
+```gmsh
+Physical Surface(1) = {s1, s2};
+Physical Curve(2) = {l1, l2, l3, l4};
+```
+Numbers in round braces are the unique physical region identifiers that are used later by BeamImpedance2DX library.
+Variables or numbers in curly braces are the internal Gmsh surface and line numbers.
+
+## Mesh generation
+
+Generation of the mesh file `mesh.msh` from Gmsh script `mesh.geo` is done by using command
+```bash
+gmsh mesh.geo -2 -o mesh.msh
+```
+
+## Converting mesh to XDMF format
+
+Support script `./tools/convert_msh.py` may be used to convert `.msh` mesh to `.xdfm`.
+To convert `mesh.msh` to `mesh.xdmf` issue the command
+```bash
+./convert_msh.py mesh.msh mesh.xdmf
+```
+If calculation problem requires boundary data, convert it using command
+```bash
+./convert_msh.py mesh.msh mesh_boundary.xdmf line
+```
+
+## BeamImpedance2DX syntax
+
+### Create materials
+
+There's a number of materials defined in the library
+```python
+from bi2d.materials import vacuum, beam, steel, copper, titanium
+```
+
+By default the physical region number `1` is a beam region. It's used by a source functions and for the integration.
+It should be round. Assign it using the line
+```python
+beam.index = 1
+```
+Other imported materials should be assigned a physical region number as well
+```python
+vacuum.index = 2
+copper.index = 3
+copper_copy = copper.copy()
+copper_copy.index = 4
+```
+Alternatively, materials may be defined from scratch
+```python
+gold = Material(5, name="Gold", sigma=4.52e7)
+alumina = Material(6, name="Alumina", eps_r=8)
+unicorn_horn = Material(6, name="Unicorn horn", sigma=1e8, eps_r=2, mu_r_re=0.1, mu_r_im=0.2)
+```
+Dispersive properties are defined by supplying material property arguments with function that takes and returns one argument
+```python
+def dispersive_material_sigma(f):
+    if f > 1e6:
+        return 1e7
+    else:
+        return 1e6
+
+dispersive_material = Material(7, name="Dispersive", eps=lambda f: 1.1 * (f/1e8), sigma=dispersive_material_sigma)
+```
+One would probably want to use a table to interpolate material properties from it. Library provides such functionality
+in a form of `ArrayInterpolate` class.
+```python
+my_table = ArrayInterpolate.from_file("my_table.csv", 0, 2, delimiter=",") # x=column 0, y=column 2
+my_dispersive_material = Material(8, name="My dispersive_ material", sigma=my_table.interp)
+```
+
+### Loading mesh and creating material map
+
+Creating mesh and material map is just a matter of providing a mesh file name and a list of materials with assigned
+material numbers.
+```python
+mesh = bi2d.Mesh("mesh.xdmf")
+mesh_with_boundary = bi2d.Mesh("mesh.xdmf", "mesh_boundary.xdmf")
+material_map = bi2d.MaterialMap(mesh, [beam, vacuum, steel])
+```
+
+### Create a solution object
+
+`Solution` object holds all the calculated fields. It's instantiated using the created material map
+```python
+solution = Solution(material_map, H1_order=2, Hcurl_order=2)
+```
+
+`H1_order` and `Hcurl_order` arguments control a degree of field interpolation. `1` means linear interpolation, `2` ⸺
+parabolic interpolation etc.
+Higher the polynomial degree, higher the solution precision, bigger the problem size, longer the solution.
+
+### Calculate impedance
+
+There's a high level function for calculating a beam impedance in a frequency range
+```python
+z = solution.get_z([1e5, 1e7], beta=0.1, rotation=0,
+                  source_function=bi2d.SourceFunction.MONOPOLE, sibc=[steel, copper, titanium])
+```
+The first argument is a list of frequency points for the calculation. It's convenient to use
+[`numpy.logspace`](https://numpy.org/doc/stable/reference/generated/numpy.logspace.html?highlight=logspace#numpy.logspace)
+function to generate this list.
+`beta` is a relative beam speed.
+`source_function` may be `bi2d.SourceFunction.MONOPOLE` for monopole and `bi2d.SourceFunction.DIPOLE` for
+dipole calculations.
+If using `bi2d.SourceFunction.DIPOLE` source function, argument `rotation` may be used to specify dipole rotation.
+
+Surface impedance boundary condition is applied to the physical lines specified in `sibc` list.
+Note that for these materials only conductivity $\sigma$ is used.
+
+### Visualize the fields
+
+Calculated fields may be saved to file
+```python
+solution.save("solution.xdmf")
+```
+Use `ParaView` to actually view the fields
+```bash
+paraview solution.xdmf
+```
+This file contains split irrotational and solenoidal field parts. You may create a sum of this parts using `Esum`
+object
+```python
+from bi2d.esum import Esum
+
+esum = Esum(solution)
+esum.solve()
+solution.save("solution.xdmf)"
+```

@@ -35,9 +35,8 @@ class Js():
         sigma = (maxx - minx) / 2 / 2
         x = ufl.SpatialCoordinate(function_space)
         A = 1 / (2 * np.pi * sigma**2)
-        return A * ufl.exp(- (x[0] - x0)**2 / (2 * sigma**2)
-                           - (x[1] - y0)**2 / (2 * sigma**2)) * \
-                           test_function * dx
+        return (A * ufl.exp(- (x[0] - x0)**2 / (2 * sigma**2)
+                            - (x[1] - y0)**2 / (2 * sigma**2)) * test_function * dx)
 
     def __source_function_dipole_ring_linear(self, function_space, test_function):
         self.solution._monopole = False
