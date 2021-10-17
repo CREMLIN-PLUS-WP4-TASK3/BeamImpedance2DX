@@ -56,7 +56,7 @@ sigma={self.sigma},\
 mu=({self.mu_r_re} * mu0, {self.mu_im})]"""
 
 
-class MaterialMap():
+class MaterialMapBase():
     """Map material properties to mesh."""
 
     eps0 = 8.8541878128e-12
@@ -82,8 +82,8 @@ class MaterialMap():
 
         self.materials = [m for m in materials if m.index in self.mesh_subdomains]
 
-        functionSpace = dolfinx.FunctionSpace(mesh.mesh, ("Discontinuous Lagrange", 0))
-        self.beam = dolfinx.Function(functionSpace)
+        self.V = dolfinx.FunctionSpace(mesh.mesh, ("Discontinuous Lagrange", 0))
+        self.beam = dolfinx.Function(self.V)
         self.beam.name = "beam"
         with self.beam.vector.localForm() as loc:
             loc.set(0)
@@ -93,33 +93,6 @@ class MaterialMap():
         (minx, miny), (maxx, maxy) = self.mesh.get_limits(self.beam_index)
         if not np.isclose(maxx - minx, maxy - miny):
             raise ValueError(f"Beam subdomain {beam_subdomain_index} does not appear to be round")
-
-        for n in ["eps_r", "mu_r_re"]:
-            setattr(self, n, dolfinx.Function(functionSpace))
-            getattr(self, n).name = n
-            self.update_field(n)
-
-        for (n, flag) in [("sigma", "real_eps"), ("mu_r_im", "real_mu")]:
-            if not np.all([getattr(m, flag) for m in self.materials]):
-                setattr(self, n, dolfinx.Function(functionSpace))
-                getattr(self, n).name = n
-                self.update_field(n)
-            else:
-                setattr(self, n, None)
-
-        for n in ["eps", "mu_re", "nu_re"]:
-            setattr(self, n, dolfinx.Function(functionSpace))
-            getattr(self, n).name = n
-        if self.mu_r_im is not None:
-            for n in ["mu_im", "nu_im"]:
-                setattr(self, n, dolfinx.Function(functionSpace))
-                getattr(self, n).name = n
-        else:
-            self.mu_im = None
-            self.nu_im = None
-        self.calculate_eps()
-        self.calculate_mu()
-        self.calculate_nu()
 
     def update_field(self, name):
         """Update material field map."""
@@ -150,6 +123,66 @@ class MaterialMap():
                     loc_field.setValues(cells, val)
             else:
                 raise ValueError(f"Invalid {name} type for material {m.name}")
+
+    def update(self):
+        """Update material map lazily."""
+        if self.f != self._f_previous:
+            self._update()
+            self._f_previous = self.f
+
+    def save(self, field_file: str):
+        """Save material fields to XDMF file."""
+        with dolfinx.io.XDMFFile(MPI.COMM_WORLD, field_file, "w") as xdmf:
+            self.mesh.xdmf_write_mesh(xdmf)
+            self.xdmf_write_all(xdmf)
+
+    def xdmf_write_field(self, xdmf: dolfinx.io.XDMFFile, field_name: str):
+        """Write field to XDMF file."""
+        xdmf.write_function(getattr(self, field_name))
+
+    def xdmf_write_all(self, xdmf: dolfinx.io.XDMFFile):
+        """Save material fields to XDMF file."""
+        self.update()
+        for n in self._xdmf_write_all_list:
+            if getattr(self, n) is not None:
+                self.xdmf_write_field(xdmf, n)
+
+
+class MaterialMapScalar(MaterialMapBase):
+    """Map material properties to mesh."""
+
+    def __init__(self, mesh, materials, f=1e5, beam_subdomain_index=1):
+        """Initialize."""
+        super().__init__(mesh, materials, f, beam_subdomain_index)
+        self._xdmf_write_all_list = ["beam", "eps_r", "eps", "sigma", "mu_r_re",
+                                     "mu_r_im", "mu_re", "mu_im", "nu_re", "nu_im"]
+
+        for n in ["eps_r", "mu_r_re"]:
+            setattr(self, n, dolfinx.Function(self.V))
+            getattr(self, n).name = n
+            self.update_field(n)
+
+        for (n, flag) in [("sigma", "real_eps"), ("mu_r_im", "real_mu")]:
+            if not np.all([getattr(m, flag) for m in self.materials]):
+                setattr(self, n, dolfinx.Function(self.V))
+                getattr(self, n).name = n
+                self.update_field(n)
+            else:
+                setattr(self, n, None)
+
+        for n in ["eps", "mu_re", "nu_re"]:
+            setattr(self, n, dolfinx.Function(self.V))
+            getattr(self, n).name = n
+        if self.mu_r_im is not None:
+            for n in ["mu_im", "nu_im"]:
+                setattr(self, n, dolfinx.Function(self.V))
+                getattr(self, n).name = n
+        else:
+            self.mu_im = None
+            self.nu_im = None
+        self.calculate_eps()
+        self.calculate_mu()
+        self.calculate_nu()
 
     def calculate_eps(self):
         """Calculate epsilon function."""
@@ -184,39 +217,68 @@ class MaterialMap():
                 val = mu_im / (mu_re*mu_re + mu_im*mu_im)
                 val.copy(nu_im)
 
-    def update(self):
-        """Update material map lazily."""
-        if self.f != self._f_previous:
-            recalculate_nu = False
-            for n in ["eps_r", "sigma", "mu_r_re", "mu_r_im"]:
-                if getattr(self, n) is not None and \
-                   np.any([getattr(m, n + "_dispersive") for m in self.materials]):
-                    self.update_field(n)
-                    if n == "eps_r":
-                        self.calculate_eps()
-                    elif n == "mu_r_re" or n == "mu_r_im":
-                        self.calculate_mu()
-                        recalculate_nu = True
-            if recalculate_nu:
-                self.calculate_nu()
-            self._f_previous = self.f
+    def _update(self):
+        """Update material map."""
+        recalculate_nu = False
+        for n in ["eps_r", "sigma", "mu_r_re", "mu_r_im"]:
+            if getattr(self, n) is not None and \
+               np.any([getattr(m, n + "_dispersive") for m in self.materials]):
+                self.update_field(n)
+                if n == "eps_r":
+                    self.calculate_eps()
+                elif n == "mu_r_re" or n == "mu_r_im":
+                    self.calculate_mu()
+                    recalculate_nu = True
+        if recalculate_nu:
+            self.calculate_nu()
 
-    def save(self, field_file: str):
-        """Save material fields to XDMF file."""
-        with dolfinx.io.XDMFFile(MPI.COMM_WORLD, field_file, "w") as xdmf:
-            self.mesh.xdmf_write_mesh(xdmf)
-            self.xdmf_write_all(xdmf)
 
-    def xdmf_write_field(self, xdmf: dolfinx.io.XDMFFile, field_name: str):
-        """Write field to XDMF file."""
-        xdmf.write_function(getattr(self, field_name))
+class MaterialMapComplex(MaterialMapBase):
+    """Map material properties to mesh."""
 
-    def xdmf_write_all(self, xdmf: dolfinx.io.XDMFFile):
-        """Save material fields to XDMF file."""
-        self.update()
-        for n in ["beam", "eps_r", "eps", "sigma", "mu_r_re", "mu_r_im", "mu_re", "mu_im", "nu_re", "nu_im"]:
-            if getattr(self, n) is not None:
-                self.xdmf_write_field(xdmf, n)
+    def __init__(self, mesh, materials, f=1e5, beam_subdomain_index=1):
+        """Initialize."""
+        super().__init__(mesh, materials, f, beam_subdomain_index)
+        self._xdmf_write_all_list = ["beam", "eps_r", "eps", "sigma", "mu_r_re",
+                                     "mu_r_im", "mu"]
+
+        for n in ["eps_r", "sigma", "mu_r_re", "mu_r_im"]:
+            setattr(self, n, dolfinx.Function(self.V))
+            getattr(self, n).name = n
+            self.update_field(n)
+
+        for n in ["eps", "mu"]:
+            setattr(self, n, dolfinx.Function(self.V))
+            getattr(self, n).name = n
+        self.calculate_eps()
+        self.calculate_mu()
+
+    def calculate_eps(self):
+        """Calculate epsilon function."""
+        with self.eps_r.vector.localForm() as eps_r, \
+             self.eps.vector.localForm() as eps, \
+             self.sigma.vector.localForm() as sigma:
+            val = eps_r * self.eps0 - 1j * sigma / (2 * np.pi * self.f)
+            val.copy(eps)
+
+    def calculate_mu(self):
+        """Calculate mu function."""
+        with self.mu_r_re.vector.localForm() as mu_r_re, \
+             self.mu_r_im.vector.localForm() as mu_r_im, \
+             self.mu.vector.localForm() as mu:
+            val = (mu_r_re - 1j * mu_r_im) * self.mu0
+            val.copy(mu)
+
+    def _update(self):
+        """Update material map."""
+        for n in ["eps_r", "sigma", "mu_r_re", "mu_r_im"]:
+            if getattr(self, n) is not None and \
+               np.any([getattr(m, n + "_dispersive") for m in self.materials]):
+                self.update_field(n)
+                if n == "eps_r" or n == "sigma":
+                    self.calculate_eps()
+                elif n == "mu_r_re" or n == "mu_r_im":
+                    self.calculate_mu()
 
 
 class ArrayInterpolate():
@@ -241,3 +303,9 @@ class ArrayInterpolate():
     def interp(self, x):
         """Interpolate point."""
         return np.interp([x], self.data_x, self.data_y)[0]
+
+
+if dolfinx.has_petsc_complex:
+    MaterialMap = MaterialMapComplex
+else:
+    MaterialMap = MaterialMapScalar

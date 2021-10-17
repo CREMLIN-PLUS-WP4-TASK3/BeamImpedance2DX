@@ -38,26 +38,31 @@ class Solution():
         self.solver_viewer = PETSc.Viewer()
         # Functions and function flags
         self.Js = None
+        self.Phi = None
         self.Phi_re = None
         self.Phi_im = None
+        self.Ediv_perp = None
         self.Ediv_perp_re = None
         self.Ediv_perp_im = None
+        self.Ediv_z = None
         self.Ediv_z_re = None
         self.Ediv_z_im = None
+        self.Ecurl_perp = None
         self.Ecurl_perp_re = None
         self.Ecurl_perp_im = None
+        self.Ecurl_z = None
         self.Ecurl_z_re = None
         self.Ecurl_z_im = None
+        self.Eperp = None
         self.Eperp_re = None
         self.Eperp_im = None
+        self.Ez = None
         self.Ez_re = None
         self.Ez_im = None
         self._Js_stale = True
         self._Ediv_stale = True
         self._Ecurl_stale = True
         self._E_stale = True
-        # Beam center coordinate
-        self.beam_center = (0.0, 0.0)
         # Solution type flag
         self._monopole = True
         # Monopole charge
@@ -136,47 +141,82 @@ class Solution():
     @property
     def z(self):
         """Get impedance."""
-        for name in ["Js", "Ediv_perp_re", "Ediv_perp_im", "Ediv_z_re", "Ediv_z_im",
-                     "Ecurl_perp_re", "Ecurl_perp_im", "Ecurl_z_re", "Ecurl_z_im"]:
-            attr = getattr(self, name)
-            if attr is None:
-                raise AttributeError(f"{name} function is not available")
-        for name in ["Js", "Ediv", "Ecurl"]:
-            attr = getattr(self, f"_{name}_stale")
-            if attr:
-                raise ValueError(f"{name} solutions are stale and need to be recalculated")
-
-        E_z_re = self.Ediv_z_re + self.ecurl_z_re
-        E_z_im = self.Ediv_z_im + self.ecurl_z_im
-
-        if self._monopole:
-            r"""
-            $$
-            \underline{Z}_\parallel(\omega)
-            =-\frac{1}{q^2}\left(
-            \int_{\Omega}{\vec{E}^\Re \vec{J}_\parallel^\Re \delta \;d\Omega}
-            +j\int_{\Omega}{\vec{E}^\Im \vec{J}_\parallel^\Re \delta \;d\Omega}
-            \right)
-            $$
-            """
-            Zre = dolfinx.fem.assemble_scalar(-1 / self.q ** 2 *
-                                              ufl.inner(E_z_re, self.Js) * dx)
-            Zim = dolfinx.fem.assemble_scalar(-1 / self.q ** 2 *
-                                              ufl.inner(E_z_im, self.Js) * dx)
+        if dolfinx.has_petsc_complex:
+            for name in ["Js", "Ediv_perp", "Ediv_z", "Ecurl_perp", "Ecurl_z"]:
+                attr = getattr(self, name)
+                if attr is None:
+                    raise AttributeError(f"{name} function is not available")
+            for name in ["Js", "Ediv", "Ecurl"]:
+                attr = getattr(self, f"_{name}_stale")
+                if attr:
+                    raise ValueError(f"{name} solutions are stale and need to be recalculated")
         else:
-            r"""
-            $$
-            \underline{Z}_\perp(\omega)
-            =-\frac{\beta c}{(q d_r)^2\omega}\left(
-            \int_{\Omega}{\vec{E}^\Re \vec{J}_\perp^\Re \delta \;d\Omega}
-            +j\int_{\Omega}{\vec{E}^\Im \vec{J}_\perp^\Re \delta \;d\Omega}
-            \right)
-            $$
-            """
-            Zre = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / self.dm**2 / self._omega *
-                                              ufl.inner(E_z_re, self.Js) * dx)
-            Zim = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / self.dm**2 / self._omega *
-                                              ufl.inner(E_z_im, self.Js) * dx)
+            for name in ["Js", "Ediv_perp_re", "Ediv_perp_im", "Ediv_z_re", "Ediv_z_im",
+                         "Ecurl_perp_re", "Ecurl_perp_im", "Ecurl_z_re", "Ecurl_z_im"]:
+                attr = getattr(self, name)
+                if attr is None:
+                    raise AttributeError(f"{name} function is not available")
+            for name in ["Js", "Ediv", "Ecurl"]:
+                attr = getattr(self, f"_{name}_stale")
+                if attr:
+                    raise ValueError(f"{name} solutions are stale and need to be recalculated")
+
+        if dolfinx.has_petsc_complex:
+            E_z = self.Ediv_z + self.ecurl_z
+            if self._monopole:
+                r"""
+                $$
+                \underline{Z}_\parallel(\omega)
+                =-\frac{1}{q^2}\int_{\Omega}{\vec{E}\vec{J}_\parallel^* \delta \;d\Omega}
+                $$
+                """
+                val = dolfinx.fem.assemble_scalar(-1 / self.q ** 2 *
+                                                  ufl.inner(E_z, ufl.conj(self.Js)) * dx)
+                Zre = np.real(val)
+                Zim = np.imag(val)
+            else:
+                r"""
+                $$
+                \underline{Z}_\perp(\omega)
+                =-\frac{\beta c}{(q d_r)^2\omega}
+                \int_{\Omega}{\vec{E} \vec{J}_\perp^* \delta \;d\Omega}
+                $$
+                """
+                val = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / self.dm**2 / self._omega *
+                                                  ufl.inner(E_z, ufl.conj(self.Js)) * dx)
+                Zre = np.real(val)
+                Zim = np.imag(val)
+        else:
+            E_z_re = self.Ediv_z_re + self.ecurl_z_re
+            E_z_im = self.Ediv_z_im + self.ecurl_z_im
+            if self._monopole:
+                r"""
+                $$
+                \underline{Z}_\parallel(\omega)
+                =-\frac{1}{q^2}\left(
+                \int_{\Omega}{\vec{E}^\Re \vec{J}_\parallel^\Re \delta \;d\Omega}
+                +j\int_{\Omega}{\vec{E}^\Im \vec{J}_\parallel^\Re \delta \;d\Omega}
+                \right)
+                $$
+                """
+                Zre = dolfinx.fem.assemble_scalar(-1 / self.q ** 2 *
+                                                  ufl.inner(E_z_re, self.Js) * dx)
+                Zim = dolfinx.fem.assemble_scalar(-1 / self.q ** 2 *
+                                                  ufl.inner(E_z_im, self.Js) * dx)
+            else:
+                r"""
+                $$
+                \underline{Z}_\perp(\omega)
+                =-\frac{\beta c}{(q d_r)^2\omega}\left(
+                \int_{\Omega}{\vec{E}^\Re \vec{J}_\perp^\Re \delta \;d\Omega}
+                +j\int_{\Omega}{\vec{E}^\Im \vec{J}_\perp^\Re \delta \;d\Omega}
+                \right)
+                $$
+                """
+                Zre = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / self.dm**2 / self._omega *
+                                                  ufl.inner(E_z_re, self.Js) * dx)
+                Zim = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / self.dm**2 / self._omega *
+                                                  ufl.inner(E_z_im, self.Js) * dx)
         _Zre = MPI.COMM_WORLD.gather(Zre)
         _Zim = MPI.COMM_WORLD.gather(Zim)
         if MPI.COMM_WORLD.rank == 0:
@@ -242,14 +282,17 @@ class Solution():
                 if getattr(self, n) is not None:
                     self.xdmf_write_field(xdmf, n)
         if not self._Ediv_stale:
-            for n in ["Phi_re", "Phi_im", "Ediv_perp_re", "Ediv_perp_im", "Ediv_z_re", "Ediv_z_im"]:
+            for n in ["Phi_re", "Phi_im", "Ediv_perp_re", "Ediv_perp_im", "Ediv_z_re", "Ediv_z_im",
+                      "Phi", "Ediv_perp", "Ediv_z"]:
                 if getattr(self, n) is not None:
                     self.xdmf_write_field(xdmf, n)
         if not self._Ecurl_stale:
-            for n in ["Ecurl_perp_re", "Ecurl_perp_im", "Ecurl_z_re", "Ecurl_z_im"]:
+            for n in ["Ecurl_perp_re", "Ecurl_perp_im", "Ecurl_z_re", "Ecurl_z_im",
+                      "Ecurl_perp", "Ecurl_z"]:
                 if getattr(self, n) is not None:
                     self.xdmf_write_field(xdmf, n)
         if not self._E_stale:
-            for n in ["Eperp_re", "Eperp_im", "Ez_re", "Ez_im"]:
+            for n in ["Eperp_re", "Eperp_im", "Ez_re", "Ez_im",
+                      "Eperp", "Ez"]:
                 if getattr(self, n) is not None:
                     self.xdmf_write_field(xdmf, n)
