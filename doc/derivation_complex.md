@@ -135,7 +135,7 @@ $$
 $\vec{n}$ and $\vec{e}_{z}$ are orthogonal, so their product $\vec{n} \vec{e}_{z} = 0$.
 
 $$-\underline{\varepsilon}\nabla_\perp\cdot\nabla_\perp\underline{\Phi}\vec{n}
--\frac{\omega^2\underline{\varepsilon}}{\beta^2 c_0^2}\underline{\Phi}\vec{e}_{z}
++\frac{\omega^2\underline{\varepsilon}}{\beta^2 c_0^2}\underline{\Phi}\vec{e}_{z}
 =\frac{1}{\beta c_0}J_s$$
 
 Using Galerkin method lowering equation order by multiplying equation by the test function $v$ and

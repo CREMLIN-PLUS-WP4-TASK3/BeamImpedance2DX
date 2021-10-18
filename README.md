@@ -13,7 +13,7 @@ In order to generate calculation meshes and visualize the simulated electromagne
 
 ## Jupyter server with real numbers
 ```bash
-docker run --init --rm --name dolfinx --env OMP_NUM_THREADS=$(nproc) -p 8888:8888 -v "$(pwd)":/root/shared dolfinx/lab
+docker run --init --rm --env OMP_NUM_THREADS=$(nproc) -p 8888:8888 -v "$(pwd)":/root/shared -w /root/shared dolfinx/lab
 ```
 
 ## Jupyter server with complex numbers
@@ -24,7 +24,7 @@ docker run -v $(pwd):/root/shared -w "/root/shared" --rm --env OMP_NUM_THREADS=$
 ## Shell with real numbers
 To run script named `script.py`
 ```bash
-docker run --init --rm --name dolfinx --env OMP_NUM_THREADS=$(nproc) -v "$(pwd)":/root/shared -w /root/shared dolfinx/dolfinx python3 script.py
+docker run --init --rm --env OMP_NUM_THREADS=$(nproc) -v "$(pwd)":/root/shared -w /root/shared dolfinx/dolfinx python3 script.py
 ```
 
 ## Shell with complex numbers
@@ -36,7 +36,7 @@ docker run -v $(pwd):/root/shared -w "/root/shared" --rm --env OMP_NUM_THREADS=$
 ## Shell with real numbers and MPI
 To run script named `script.py`. It's important to run MPI with `OMP_NUM_THREADS=1`.
 ```bash
-docker run --init --rm --name dolfinx --env OMP_NUM_THREADS=1 -v "$(pwd)":/root/shared -w /root/shared dolfinx/dolfinx mpirun --host localhost:$(nproc) -n $(nproc) python3 script.py
+docker run --init --rm --env OMP_NUM_THREADS=1 -v "$(pwd)":/root/shared -w /root/shared dolfinx/dolfinx mpirun --host localhost:$(nproc) -n $(nproc) python3 script.py
 ```
 
 ## Shell with complex numbers and MPI

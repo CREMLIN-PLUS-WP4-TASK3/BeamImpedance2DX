@@ -41,9 +41,9 @@ class Ediv():
 
             # $$\underline{\varepsilon}\beta c_0\int_\Omega{\nabla_\perp v \cdot \nabla_\perp\Phi \;d\Omega}$$
             self._a_phi += eps_v * inner(grad(phi), grad(vv)) * dx
-            # $$\frac{\omega^2\varepsilon_0 \varepsilon_r}{\beta c_0}\int_\Omega{v\Phi \;d\Omega}$$
+            # $$\frac{\omega^2\underline{\varepsilon}}{\beta c_0}\int_\Omega{v\Phi \;d\Omega}$$
             self._a_phi += omega2_eps_v * inner(phi, vv) * dx
-            # $$\int_\Omega{v^\Re J_s \;d\Omega}$$
+            # $$\int_\Omega{v J_s \;d\Omega}$$
             self._L_phi += inner(self.solution.Js, vv) * dx
 
         else:

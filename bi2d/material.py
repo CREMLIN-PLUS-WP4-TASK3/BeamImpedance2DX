@@ -279,6 +279,9 @@ class MaterialMapComplex(MaterialMapBase):
                     self.calculate_eps()
                 elif n == "mu_r_re" or n == "mu_r_im":
                     self.calculate_mu()
+        if self.f != self._f_previous:
+            self.calculate_eps()
+
 
 
 class ArrayInterpolate():
