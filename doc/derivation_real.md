@@ -8,8 +8,8 @@ Equations in this paper will be referred to as `Uwe:1`, `Uwe:2` etc.
 
 Our goal is to obtain longitudinal and transverse impedance (Uwe:4-6)
 
-$$\underline{Z}_\parallel(\omega) = -\frac{1}{q^2}\int_{beam}{\vec{\underline{E}}\vec{\underline{J}}^{*}_\parallel\;dV}$$
-$$\underline{Z}_\perp(\omega) = -\frac{\beta c}{(q d_r)^2\omega}\int_{beam}{\vec{\underline{E}}\vec{\underline{J}}^{*}_\perp\;dV}$$
+$$\underline{Z}_\parallel(\omega) = -\frac{1}{q^2}\int_{beam}{\vec{\underline{E}}\underline{J}^{*}_\parallel\;dV}$$
+$$\underline{Z}_\perp(\omega) = -\frac{\beta c}{(q d_r)^2\omega}\int_{beam}{\vec{\underline{E}}\underline{J}^{*}_\perp\;dV}$$
 
 *Underlined variables denote complex values.*
 
@@ -98,61 +98,61 @@ $\nabla\times\left(-\nabla\Phi\right)=0$
 
 $$-\nabla\cdot\underline{\varepsilon}\nabla\underline{\Phi} = \frac{1}{\beta c_0}J_s$$
 $$-\nabla\cdot\left(\varepsilon_0\varepsilon_r -
-j\frac{\sigma}{\omega}\right)\nabla\Phi = \frac{1}{\beta c_0}J_s$$
+j\frac{\sigma}{\omega}\right)\nabla\underline{\Phi} = \frac{1}{\beta c_0}J_s$$
 
-$$-\nabla\cdot\varepsilon_0\varepsilon_r\nabla\Phi
-+j\nabla\cdot\frac{\sigma}{\omega}\nabla\Phi=\frac{1}{\beta c_0}J_s$$
+$$-\nabla\cdot\varepsilon_0\varepsilon_r\nabla\underline{\Phi}
++j\nabla\cdot\frac{\sigma}{\omega}\nabla\underline{\Phi}=\frac{1}{\beta c_0}J_s$$
 
-$\Phi$ is a scalar field.
+$\underline{\Phi}$ is a scalar field.
 
 For 2D problem gradient may be decomposed as follows.
 
-$$\nabla\Phi=
-\frac{\partial\Phi}{\partial x}\vec{x}+
-\frac{\partial\Phi}{\partial y}\vec{y}+
-\frac{\partial\Phi}{\partial z}\vec{z}=
+$$\nabla\underline{\Phi}=
+\frac{\partial\underline{\Phi}}{\partial x}\vec{x}+
+\frac{\partial\underline{\Phi}}{\partial y}\vec{y}+
+\frac{\partial\underline{\Phi}}{\partial z}\vec{z}=
 \begin{pmatrix}
 \frac{\partial}{\partial x} \\
 \frac{\partial}{\partial y} \\
-\end{pmatrix}\Phi\vec{n}+
-\frac{\partial\Phi}{\partial z}\Phi\vec{z}=
-\nabla_\perp\Phi\vec{n}-j\frac{\omega}{\beta c_0}\Phi\vec{e}_{z}
+\end{pmatrix}\underline{\Phi}\vec{n}+
+\frac{\partial}{\partial z}\underline{\Phi}\vec{z}=
+\nabla_\perp\underline{\Phi}\vec{n}-j\frac{\omega}{\beta c_0}\underline{\Phi}\vec{e}_{z}
 $$
 
 Material properties are constant across elements.
 So, in the calculations they are handled as if they were constant.
 
 $$-\varepsilon_0\varepsilon_r\nabla\cdot
-\left(\nabla_\perp\Phi\vec{n} - j \frac{\omega}{\beta c_0}\Phi\vec{e}_{z}\right)
+\left(\nabla_\perp\underline{\Phi}\vec{n} - j \frac{\omega}{\beta c_0}\underline{\Phi}\vec{e}_{z}\right)
 +j\frac{\sigma}{\omega}\nabla\cdot
-\left(\nabla_\perp\Phi\vec{n} - j \frac{\omega}{\beta c_0}\Phi\vec{e}_{z}\right)=\frac{1}{\beta c_0}J_s$$
+\left(\nabla_\perp\underline{\Phi}\vec{n} - j \frac{\omega}{\beta c_0}\underline{\Phi}\vec{e}_{z}\right)=\frac{1}{\beta c_0}J_s$$
 
-$$-\varepsilon_0\varepsilon_r\nabla\cdot\nabla_\perp\Phi\vec{n}
-+j\frac{\omega\varepsilon}{\beta c_0}\nabla\Phi\vec{e}_z
-+j\frac{\sigma}{\omega}\nabla\cdot\nabla_\perp\Phi\vec{n}
-+\frac{\sigma}{\beta c_0}\nabla\Phi\vec{e}_{z}
+$$-\varepsilon_0\varepsilon_r\nabla\cdot\nabla_\perp\underline{\Phi}\vec{n}
++j\frac{\omega\varepsilon}{\beta c_0}\nabla\underline{\Phi}\vec{e}_z
++j\frac{\sigma}{\omega}\nabla\cdot\nabla_\perp\underline{\Phi}\vec{n}
++\frac{\sigma}{\beta c_0}\nabla\underline{\Phi}\vec{e}_{z}
 =\frac{1}{\beta c_0}J_s$$
 
 $$
 \begin{align}
-&-\varepsilon_0\varepsilon_r\nabla_\perp\cdot\nabla_\perp\Phi\vec{n}
--\varepsilon_0\varepsilon_r\frac{\partial}{\partial z}\nabla_\perp\Phi\vec{n}\vec{e}_{z}
-+j\frac{\omega\varepsilon_0\varepsilon_r}{\beta c_0}\nabla_\perp\Phi\vec{e}_{z}\vec{n}
-+\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\Phi\vec{e}_{z}
-+\\&+j\frac{\sigma}{\omega}\nabla_\perp\cdot\nabla_\perp\Phi\vec{n}
-+j\frac{\sigma}{\omega}\frac{\partial}{\partial z}\nabla_\perp\Phi\vec{n}\vec{e}_{z}
-+\frac{\sigma}{\beta c_0}\nabla_\perp\Phi\vec{e}_{z}\vec{n}
--j\frac{\omega\sigma}{\beta^2 c_0^2}\Phi\vec{e}_{z}
+&-\varepsilon_0\varepsilon_r\nabla_\perp\cdot\nabla_\perp\underline{\Phi}\vec{n}
+-\varepsilon_0\varepsilon_r\frac{\partial}{\partial z}\nabla_\perp\underline{\Phi}\vec{n}\vec{e}_{z}
++j\frac{\omega\varepsilon_0\varepsilon_r}{\beta c_0}\nabla_\perp\underline{\Phi}\vec{e}_{z}\vec{n}
++\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\underline{\Phi}\vec{e}_{z}
++\\&+j\frac{\sigma}{\omega}\nabla_\perp\cdot\nabla_\perp\underline{\Phi}\vec{n}
++j\frac{\sigma}{\omega}\frac{\partial}{\partial z}\nabla_\perp\underline{\Phi}\vec{n}\vec{e}_{z}
++\frac{\sigma}{\beta c_0}\nabla_\perp\underline{\Phi}\vec{e}_{z}\vec{n}
+-j\frac{\omega\sigma}{\beta^2 c_0^2}\underline{\Phi}\vec{e}_{z}
 =\frac{1}{\beta c_0}J_s
 \end{align}
 $$
 
 $\vec{n}$ and $\vec{e}_{z}$ are orthogonal, so their product $\vec{n} \vec{e}_{z} = 0$.
 
-$$-\varepsilon_0\varepsilon_r\nabla_\perp\cdot\nabla_\perp\Phi\vec{n}
-+\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\Phi\vec{e}_{z}
-+j\frac{\sigma}{\omega}\nabla_\perp\cdot\nabla_\perp\Phi\vec{n}
--j\frac{\omega\sigma}{\beta^2 c_0^2}\Phi\vec{e}_{z}
+$$-\varepsilon_0\varepsilon_r\nabla_\perp\cdot\nabla_\perp\underline{\Phi}\vec{n}
++\frac{\omega^2\varepsilon_0\varepsilon_r}{\beta^2 c_0^2}\underline{\Phi}\vec{e}_{z}
++j\frac{\sigma}{\omega}\nabla_\perp\cdot\nabla_\perp\underline{\Phi}\vec{n}
+-j\frac{\omega\sigma}{\beta^2 c_0^2}\underline{\Phi}\vec{e}_{z}
 =\frac{1}{\beta c_0}J_s$$
 
 Split $\underline{\Phi}$ into real and imaginary parts.
@@ -329,7 +329,7 @@ Enclosing surface normal is opposite to Z axis ($\vec{e} = -\vec{n}$).
 Section boundary normal points inward, boundary tangential vector is oriented clockwise relative to
 the enclosing surface normal direction.
 
-$$\nabla\times\underline{\nu}\nabla\times\vec{\underline{E}}-\omega^2\varepsilon_0\underline{\varepsilon}_r\vec{E}=-j\omega\vec{J}_S$$
+$$\nabla\times\underline{\nu}\nabla\times\vec{\underline{E}}-\omega^2\varepsilon_0\underline{\varepsilon}_r\vec{E}=-j\omega{J}_S$$
 
 $$\vec{\underline{E}} = \vec{\underline{E}}_{curl} + \vec{\underline{E}}_{div}$$
 
@@ -337,10 +337,10 @@ Since $\nabla\times\vec{\underline{E}}_{div}=0$
 
 $$\nabla\times\underline{\nu}\nabla\times\vec{\underline{E}}_{curl}
 -\omega^2\varepsilon_0\underline{\varepsilon}_r\vec{\underline{E}}_{curl}-\omega^2\varepsilon_0\underline{\varepsilon}_r\vec{\underline{E}}_{div}
-=-j\omega\vec{J}_S$$
+=-j\omega{J}_S$$
 
 $$\nabla\times\underline{\nu}\nabla\times\vec{\underline{E}}_{curl}-\omega^2\varepsilon_0\underline{\varepsilon}_r\vec{\underline{E}}_{curl}
-=\omega^2\varepsilon_0\underline{\varepsilon}_r\vec{\underline{E}}_{div}-j\omega\vec{J}_S$$
+=\omega^2\varepsilon_0\underline{\varepsilon}_r\vec{\underline{E}}_{div}-j\omega{J}_S$$
 
 $$\nabla\times\underline{\nu}\nabla\times\vec{\underline{E}}_{curl}-\omega^2\varepsilon_0\underline{\varepsilon}_r\vec{\underline{E}}_{curl}=\vec{\underline{R}}$$
 
@@ -674,17 +674,17 @@ $$
 <!-- 3 -->
 $$
 H^{\Re\Re}_{z\perp}
-\vec{E}^\Re_z=
+{E}^\Re_z=
 -\hat{\operatorname{Z}}\nu^\Im\hat{\operatorname{A}}
-\vec{E}^\Re_z
+{E}^\Re_z
 $$
 
 <!-- 4 -->
 $$
 H^{\Im\Re}_{z\perp}
-\vec{E}^\Im_z=
+{E}^\Im_z=
 -\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}
-\vec{E}^\Im_z
+{E}^\Im_z
 $$
 
 <!-- 5 -->
@@ -706,17 +706,17 @@ $$
 <!-- 7 -->
 $$
 H^{\Re\Im}_{z\perp}
-\vec{E}^\Re_z=
+{E}^\Re_z=
 j\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}
-\vec{E}^\Re_z
+{E}^\Re_z
 $$
 
 <!-- 8 -->
 $$
 H^{\Im\Im}_{z\perp}
-\vec{E}^\Im_z=
+{E}^\Im_z=
 -j\hat{\operatorname{Z}}\nu^\Im\hat{\operatorname{A}}
-\vec{E}^\Im_z
+{E}^\Im_z
 $$
 
 <!-- 9 -->
@@ -738,17 +738,17 @@ $$
 <!-- 11 -->
 $$
 H^{\Re\Re}_{z z}
-\vec{E}^\Re_z=
+{E}^\Re_z=
 \hat{\operatorname{B}}\nu^\Re\hat{\operatorname{A}}
-\vec{E}^\Re_z
+{E}^\Re_z
 $$
 
 <!-- 12 -->
 $$
 H^{\Im\Re}_{z z}
-\vec{E}^\Im_z=
+{E}^\Im_z=
 -\hat{\operatorname{B}}\nu^\Im\hat{\operatorname{A}}
-\vec{E}^\Im_z
+{E}^\Im_z
 $$
 
 <!-- 13 -->
@@ -770,17 +770,17 @@ $$
 <!-- 15 -->
 $$
 H^{\Re\Im}_{z z}
-\vec{E}^\Re_z=
+{E}^\Re_z=
 j\hat{\operatorname{B}}\nu^\Im\hat{\operatorname{A}}
-\vec{E}^\Re_z
+{E}^\Re_z
 $$
 
 <!-- 16 -->
 $$
 H^{\Im\Im}_{z z}
-\vec{E}^\Im_z=
+{E}^\Im_z=
 j\hat{\operatorname{B}}\nu^\Re\hat{\operatorname{A}}
-\vec{E}^\Im_z
+{E}^\Im_z
 $$
 
 Now we need to derive a weak form of the $[H]$ matrix.
@@ -1130,16 +1130,16 @@ $$
 $$
 \hat{H}^{\Re\Re}_{z\perp}
 =\int_\Omega{\vec{w}^\Re H^{\Re\Re}_{z\perp}
-\vec{E}^\Re_z\;d\Omega}
-=-\int_\Omega{\vec{w}^\Re\hat{\operatorname{Z}}\nu^\Im\hat{\operatorname{A}}\vec{E}^\Re_z\;d\Omega}
+{E}^\Re_z\;d\Omega}
+=-\int_\Omega{\vec{w}^\Re\hat{\operatorname{Z}}\nu^\Im\hat{\operatorname{A}}{E}^\Re_z\;d\Omega}
 $$
 
 <!-- 4 -->
 $$
 \hat{H}^{\Im\Re}_{z\perp}
 =\int_\Omega{\vec{w}^\Re H^{\Im\Re}_{z\perp}
-\vec{E}^\Im_z\;d\Omega}
-=-\int_\Omega{\vec{w}^\Re\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}\vec{E}^\Im_z\;d\Omega}
+{E}^\Im_z\;d\Omega}
+=-\int_\Omega{\vec{w}^\Re\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}{E}^\Im_z\;d\Omega}
 $$
 
 <!-- 5 -->
@@ -1175,15 +1175,15 @@ $$
 <!-- 7 -->
 $$
 \hat{H}^{\Re\Im}_{z\perp}
-=\int_\Omega{\vec{w}^\Im H^{\Re\Im}_{z\perp}\vec{E}^\Re_z\;d\Omega}
-=\int_\Omega{\vec{w}^\Im\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}\vec{E}^\Re_z\;d\Omega}
+=\int_\Omega{\vec{w}^\Im H^{\Re\Im}_{z\perp}{E}^\Re_z\;d\Omega}
+=\int_\Omega{\vec{w}^\Im\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}{E}^\Re_z\;d\Omega}
 $$
 
 <!-- 8 -->
 $$
 \hat{H}^{\Im\Im}_{z\perp}
-=\int_\Omega{\vec{w}^\Im H^{\Im\Im}_{z\perp}\vec{E}^\Im_z\;d\Omega}
-=-\int_\Omega{\vec{w}^\Im\hat{\operatorname{Z}}\nu^\Im\hat{\operatorname{A}}\vec{E}^\Im_z\;d\Omega}
+=\int_\Omega{\vec{w}^\Im H^{\Im\Im}_{z\perp}{E}^\Im_z\;d\Omega}
+=-\int_\Omega{\vec{w}^\Im\hat{\operatorname{Z}}\nu^\Im\hat{\operatorname{A}}{E}^\Im_z\;d\Omega}
 $$
 
 <!-- 9 -->
@@ -1214,11 +1214,11 @@ $$
 $$
 \begin{align}
 \hat{H}^{\Re\Re}_{z z}
-&=\int_\Omega{v^\Re H^{\Re\Re}_{z z}\vec{E}^\Re_z\;d\Omega} \\
-&=\int_\Omega{v^\Re\hat{\operatorname{B}}\nu^\Re\hat{\operatorname{A}}\vec{E}^\Re_z\;d\Omega} \\
+&=\int_\Omega{v^\Re H^{\Re\Re}_{z z}{E}^\Re_z\;d\Omega} \\
+&=\int_\Omega{v^\Re\hat{\operatorname{B}}\nu^\Re\hat{\operatorname{A}}{E}^\Re_z\;d\Omega} \\
 &=\int_\Omega{\left(\hat{\operatorname{A}} v^\Re\right)
-\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;d\Omega}
--\int_{\partial\Omega}{v^\Re\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Re\right)\vec{\tau}\;dS}
+\left(\nu^\Re\hat{\operatorname{A}}{E}_z^\Re\right)\;d\Omega}
+-\int_{\partial\Omega}{v^\Re\left(\nu^\Re\hat{\operatorname{A}}{E}_z^\Re\right)\vec{\tau}\;dS}
 \end{align}
 $$
 
@@ -1226,11 +1226,11 @@ $$
 $$
 \begin{align}
 \hat{H}^{\Im\Re}_{z z}
-&=\int_\Omega{v^\Re H^{\Im\Re}_{z z}\vec{E}^\Im_z\;d\Omega} \\
-&=-\int_\Omega{v^\Re\hat{\operatorname{B}}\nu^\Im\hat{\operatorname{A}}\vec{E}^\Im_z\;d\Omega} \\
+&=\int_\Omega{v^\Re H^{\Im\Re}_{z z}{E}^\Im_z\;d\Omega} \\
+&=-\int_\Omega{v^\Re\hat{\operatorname{B}}\nu^\Im\hat{\operatorname{A}}{E}^\Im_z\;d\Omega} \\
 &=-\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
-\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;d\Omega}
-+\int_{\partial\Omega}{v^\Re\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Im\right)\vec{\tau}\;dS}
+\left(\nu^\Im\hat{\operatorname{A}}{E}_z^\Im\right)\;d\Omega}
++\int_{\partial\Omega}{v^\Re\left(\nu^\Im\hat{\operatorname{A}}{E}_z^\Im\right)\vec{\tau}\;dS}
 \end{align}
 $$
 
@@ -1262,11 +1262,11 @@ $$
 $$
 \begin{align}
 \hat{H}^{\Re\Im}_{z z}
-&=\int_\Omega{v^\Im H^{\Re\Im}_{z z}\vec{E}^\Re_z\;d\Omega} \\
-&=\int_\Omega{v^\Im\hat{\operatorname{B}}\nu^\Im\hat{\operatorname{A}}\vec{E}^\Re_z\;d\Omega} \\
+&=\int_\Omega{v^\Im H^{\Re\Im}_{z z}{E}^\Re_z\;d\Omega} \\
+&=\int_\Omega{v^\Im\hat{\operatorname{B}}\nu^\Im\hat{\operatorname{A}}{E}^\Re_z\;d\Omega} \\
 &=\int_\Omega{\left(\hat{\operatorname{A}} v^\Im\right)
-\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;d\Omega}
--\int_{\partial\Omega}{v^\Im\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Re\right)\vec{\tau}\;dS}
+\left(\nu^\Im\hat{\operatorname{A}}{E}_z^\Re\right)\;d\Omega}
+-\int_{\partial\Omega}{v^\Im\left(\nu^\Im\hat{\operatorname{A}}{E}_z^\Re\right)\vec{\tau}\;dS}
 \end{align}
 $$
 
@@ -1274,11 +1274,11 @@ $$
 $$
 \begin{align}
 \hat{H}^{\Im\Im}_{z z}
-&=\int_\Omega{v^\Im H^{\Im\Im}_{z z}\vec{E}^\Im_z\;d\Omega} \\
-&=\int_\Omega{v^\Im\hat{\operatorname{B}}\nu^\Re\hat{\operatorname{A}}\vec{E}^\Im_z\;d\Omega} \\
+&=\int_\Omega{v^\Im H^{\Im\Im}_{z z}{E}^\Im_z\;d\Omega} \\
+&=\int_\Omega{v^\Im\hat{\operatorname{B}}\nu^\Re\hat{\operatorname{A}}{E}^\Im_z\;d\Omega} \\
 &=\int_\Omega{\left(\hat{\operatorname{A}} v^\Im\right)
-\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;d\Omega}
--\int_{\partial\Omega}{v^\Im\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Im\right)\vec{\tau}\;dS}
+\left(\nu^\Re\hat{\operatorname{A}}{E}_z^\Im\right)\;d\Omega}
+-\int_{\partial\Omega}{v^\Im\left(\nu^\Re\hat{\operatorname{A}}{E}_z^\Im\right)\vec{\tau}\;dS}
 \end{align}
 $$
 
@@ -1394,13 +1394,13 @@ $$
 <!-- 3 -->
 $$
 S^{\Re\Re}_{z\perp}
-=-\int_\Omega{\vec{w}^\Re\hat{\operatorname{Z}}\nu^\Im\hat{\operatorname{A}}\vec{E}^\Re_z\;d\Omega}
+=-\int_\Omega{\vec{w}^\Re\hat{\operatorname{Z}}\nu^\Im\hat{\operatorname{A}}{E}^\Re_z\;d\Omega}
 $$
 
 <!-- 4 -->
 $$
 S^{\Im\Re}_{z\perp}
-=-\int_\Omega{\vec{w}^\Re\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}\vec{E}^\Im_z\;d\Omega}
+=-\int_\Omega{\vec{w}^\Re\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}{E}^\Im_z\;d\Omega}
 $$
 
 <!-- 5 -->
@@ -1422,13 +1422,13 @@ $$
 <!-- 7 -->
 $$
 S^{\Re\Im}_{z\perp}
-=\int_\Omega{\vec{w}^\Im\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}\vec{E}^\Re_z\;d\Omega}
+=\int_\Omega{\vec{w}^\Im\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}{E}^\Re_z\;d\Omega}
 $$
 
 <!-- 8 -->
 $$
 S^{\Im\Im}_{z\perp}
-=-\int_\Omega{\vec{w}^\Im\hat{\operatorname{Z}}\nu^\Im\hat{\operatorname{A}}\vec{E}^\Im_z\;d\Omega}
+=-\int_\Omega{\vec{w}^\Im\hat{\operatorname{Z}}\nu^\Im\hat{\operatorname{A}}{E}^\Im_z\;d\Omega}
 $$
 
 <!-- 9 -->
@@ -1449,14 +1449,14 @@ $$
 $$
 S^{\Re\Re}_{z z}
 =\int_\Omega{\left(\hat{\operatorname{A}} v^\Re\right)
-\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;d\Omega}
+\left(\nu^\Re\hat{\operatorname{A}}{E}_z^\Re\right)\;d\Omega}
 $$
 
 <!-- 12 -->
 $$
 S^{\Im\Re}_{z z}
 =-\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
-\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;d\Omega}
+\left(\nu^\Im\hat{\operatorname{A}}{E}_z^\Im\right)\;d\Omega}
 $$
 
 <!-- 13 -->
@@ -1477,14 +1477,14 @@ $$
 $$
 S^{\Re\Im}_{z z}
 =\int_\Omega{\left(\hat{\operatorname{A}} v^\Im\right)
-\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;d\Omega}
+\left(\nu^\Im\hat{\operatorname{A}}{E}_z^\Re\right)\;d\Omega}
 $$
 
 <!-- 16 -->
 $$
 S^{\Im\Im}_{z z}
 =\int_\Omega{\left(\hat{\operatorname{A}} v^\Im\right)
-\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;d\Omega}
+\left(\nu^\Re\hat{\operatorname{A}}{E}_z^\Im\right)\;d\Omega}
 $$
 
 <!-- 1 -->
@@ -1563,49 +1563,49 @@ $$
 <!-- 9 -->
 $$
 B^{\Re\Re}_{\perp z}
-=\int_{\partial\Omega}{v^\Re\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Re_\perp\;dS}
+=\int_{\partial\Omega}{\vec{w}^\Re\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Re_\perp\;dS}
 $$
 
 <!-- 10 -->
 $$
 B^{\Im\Re}_{\perp z}
-=\int_{\partial\Omega}{v^\Re\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Im_\perp\;dS}
+=\int_{\partial\Omega}{\vec{w}^\Re\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Im_\perp\;dS}
 $$
 
 <!-- 11 -->
 $$
 B^{\Re\Re}_{z z}
-=-\int_{\partial\Omega}{v^\Re\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;dS}
+=-\int_{\partial\Omega}{v^\Re\left(\nu^\Re\hat{\operatorname{A}}{E}_z^\Re\right)\;dS}
 $$
 
 <!-- 12 -->
 $$
 B^{\Im\Re}_{z z}
-=\int_{\partial\Omega}{v^\Re\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;dS}
+=\int_{\partial\Omega}{v^\Re\left(\nu^\Im\hat{\operatorname{A}}{E}_z^\Im\right)\;dS}
 $$
 
 <!-- 13 -->
 $$
 B^{\Re\Im}_{\perp z}
-=-\int_{\partial\Omega}{v^\Im\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Re_\perp\;dS}
+=-\int_{\partial\Omega}{\vec{w}^\Im\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Re_\perp\;dS}
 $$
 
 <!-- 14 -->
 $$
 B^{\Im\Im}_{\perp z}
-=\int_{\partial\Omega}{v^\Im\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Im_\perp\;dS}
+=\int_{\partial\Omega}{\vec{w}^\Im\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Im_\perp\;dS}
 $$
 
 <!-- 15 -->
 $$
 B^{\Re\Im}_{z z}
-=-\int_{\partial\Omega}{v^\Im\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;dS}
+=-\int_{\partial\Omega}{v^\Im\left(\nu^\Im\hat{\operatorname{A}}{E}_z^\Re\right)\;dS}
 $$
 
 <!-- 16 -->
 $$
 B^{\Im\Im}_{z z}
-=-\int_{\partial\Omega}{v^\Im\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;dS}
+=-\int_{\partial\Omega}{v^\Im\left(\nu^\Re\hat{\operatorname{A}}{E}_z^\Im\right)\;dS}
 $$
 
 $E_{div}$ terms
@@ -1669,18 +1669,18 @@ Now we have all the equations to obtain $\vec{\underline{E}}=\vec{\underline{E}}
 the chosen source function $J_{S}$.
 These can be inserted into the equations for impedance (Uwe:4-6)
 $$\begin{align}\underline{Z}_\parallel(\omega)
-&=-\frac{1}{q^2}\int_{beam}{\vec{\underline{E}}\vec{\underline{J}}^{*}_\parallel\;dV} \\
+&=-\frac{1}{q^2}\int_{beam}{\vec{\underline{E}}\underline{J}^{*}_\parallel\;dV} \\
 &=-\frac{1}{q^2}\int_{beam}{\left(\vec{E}^\Re + j\vec{E}^\Im\right)
-\left(\vec{J}_\parallel^\Re-j\vec{J}_\parallel^\Im\right)\;dV} \\
+\left({J}_\parallel^\Re-j{J}_\parallel^\Im\right)\;dV} \\
 &=-\frac{1}{q^2}\left(
-\int_{beam}{\vec{E}^\Re \vec{J}_\parallel^\Re\;dV}
--j\int_{beam}{\vec{E}^\Re \vec{J}_\parallel^\Im\;dV}
-+j\int_{beam}{\vec{E}^\Im \vec{J}_\parallel^\Re\;dV}
-+\int_{beam}{\vec{E}^\Im \vec{J}_\parallel^\Im\;dV}
+\int_{beam}{\vec{E}^\Re {J}_\parallel^\Re\;dV}
+-j\int_{beam}{\vec{E}^\Re {J}_\parallel^\Im\;dV}
++j\int_{beam}{\vec{E}^\Im {J}_\parallel^\Re\;dV}
++\int_{beam}{\vec{E}^\Im {J}_\parallel^\Im\;dV}
 \right)
 \end{align}$$
 
-For the purely real source function $\vec{J}$ and a step function
+For the purely real source function ${J}$ and a step function
 $$
 \delta=
 \begin{cases}
@@ -1690,17 +1690,17 @@ $$
 $$
 $$\underline{Z}_\parallel(\omega)
 =-\frac{1}{q^2}\left(
-\int_{\Omega}{\vec{E}^\Re \vec{J}_\parallel^\Re \delta \;d\Omega}
-+j\int_{\Omega}{\vec{E}^\Im \vec{J}_\parallel^\Re \delta \;d\Omega}
+\int_{\Omega}{\vec{E}^\Re {J}_\parallel^\Re \delta \;d\Omega}
++j\int_{\Omega}{\vec{E}^\Im {J}_\parallel^\Re \delta \;d\Omega}
 \right)$$
 
 Similarly
 $$\begin{align}
 \underline{Z}_\perp(\omega)
-&=-\frac{\beta c}{(q d_r)^2\omega}\int_{beam}{\vec{\underline{E}}\vec{\underline{J}}^{*}_\perp\;dV} \\
+&=-\frac{\beta c}{(q d_r)^2\omega}\int_{beam}{\vec{\underline{E}}\underline{J}^{*}_\perp\;dV} \\
 &=-\frac{\beta c}{(q d_r)^2\omega}\left(
-\int_{\Omega}{\vec{E}^\Re \vec{J}_\perp^\Re \delta \;d\Omega}
-+j\int_{\Omega}{\vec{E}^\Im \vec{J}_\perp^\Re \delta \;d\Omega}
+\int_{\Omega}{\vec{E}^\Re {J}_\perp^\Re \delta \;d\Omega}
++j\int_{\Omega}{\vec{E}^\Im {J}_\perp^\Re \delta \;d\Omega}
 \right)
 \end{align}$$
 
@@ -1727,16 +1727,16 @@ $$\hat{B}\vec{\underline{E}}_\tau=-j\omega\mu\underline{H}_z$$
 Noticing that term $j\hat{Z}\vec{E}_\tau$ is normal to the boundary and therefore will not contribute to the boundary integral.
 $$\begin{align}
 \hat{A}\underline{E}_z=-j\omega\mu\vec{\underline{H}}_\tau
-&=-\frac{j\omega\mu}{(1+j)\sqrt{\frac{\mu\omega}{2\sigma}}}\vec{\underline{E}}_z
-=-\frac{j\omega\mu\sqrt{2\sigma}}{(1+j)\sqrt{\omega\mu}}\vec{\underline{E}}_z
-=-\frac{2j\sqrt{\omega\mu\sigma}}{(1+j)\sqrt{2}}\vec{\underline{E}}_z
-=-\frac{2j}{(1+j)\delta}\vec{\underline{E}}_z \\
-&=-\frac{2j(1-j)}{(1+j)(1-j)\delta}\vec{\underline{E}}_z
-=-\frac{2j+2}{(1^2-j^2)\delta}\vec{\underline{E}}_z
-=-\frac{j+1}{\delta}\vec{\underline{E}}_z
+&=-\frac{j\omega\mu}{(1+j)\sqrt{\frac{\mu\omega}{2\sigma}}}\underline{E}_z
+=-\frac{j\omega\mu\sqrt{2\sigma}}{(1+j)\sqrt{\omega\mu}}\underline{E}_z
+=-\frac{2j\sqrt{\omega\mu\sigma}}{(1+j)\sqrt{2}}\underline{E}_z
+=-\frac{2j}{(1+j)\delta}\underline{E}_z \\
+&=-\frac{2j(1-j)}{(1+j)(1-j)\delta}\underline{E}_z
+=-\frac{2+2j}{(1^2-j^2)\delta}\underline{E}_z
+=-\frac{1+j}{\delta}\underline{E}_z
 \end{align}$$
 $$\hat{B}\vec{\underline{E}}_\perp=-j\omega\mu\underline{H}_z
-=-\frac{j+1}{\delta}\underline{E}_\perp$$
+=-\frac{1+j}{\delta}\vec{\underline{E}}_\perp$$
 where $\delta=\sqrt{\frac{2}{\omega\mu\sigma}}$ is a skin depth.
 Now, applying these equations to $[M_{SIBC}]$ matrix terms.
 
@@ -1770,52 +1770,52 @@ $$
 
 <!-- 9 -->
 $$
-\int_{\partial\Omega}{v^\Re\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Re_\perp\vec{\tau}\;dS}=0
+\int_{\partial\Omega}{\vec{w}^\Re\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Re_\perp\vec{\tau}\;dS}=0
 $$
 
 <!-- 10 -->
 $$
-\int_{\partial\Omega}{v^\Re\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Im_\perp\vec{\tau}\;dS}=0
+\int_{\partial\Omega}{\vec{w}^\Re\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Im_\perp\vec{\tau}\;dS}=0
 $$
 
 <!-- 11 -->
 $$
--\int_{\partial\Omega}{v^\Re\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;dS}
-=\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Re\right)\;dS}
-+\int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Re\right)\;dS}
+-\int_{\partial\Omega}{v^\Re\left(\nu^\Re\hat{\operatorname{A}}{E}_z^\Re\right)\;dS}
+=\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Re}{\delta}{E}_z^\Re\right)\;dS}
++\int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Re}{\delta}{E}_z^\Re\right)\;dS}
 $$
 
 <!-- 12 -->
 $$
-\int_{\partial\Omega}{v^\Re\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;dS}
-=-\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Im}{\delta}\vec{E}_z^\Im\right)\;dS}
--\int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Im}{\delta}\vec{E}_z^\Im\right)\;dS}
+\int_{\partial\Omega}{v^\Re\left(\nu^\Im\hat{\operatorname{A}}{E}_z^\Im\right)\;dS}
+=-\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Im}{\delta}{E}_z^\Im\right)\;dS}
+-\int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Im}{\delta}{E}_z^\Im\right)\;dS}
 $$
 
 <!-- 13 -->
 $$
--\int_{\partial\Omega}{v^\Im\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Re_\perp\;dS}
+-\int_{\partial\Omega}{\vec{w}^\Im\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Re_\perp\;dS}
 =0
 $$
 
 <!-- 14 -->
 $$
-\int_{\partial\Omega}{v^\Im\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Im_\perp\;dS}
+\int_{\partial\Omega}{\vec{w}^\Im\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Im_\perp\;dS}
 =0
 $$
 
 <!-- 15 -->
 $$
--\int_{\partial\Omega}{v^\Im\left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;dS}
-=\int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Im}{\delta}\vec{E}_z^\Re\right)\;dS}
--\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Im}{\delta}\vec{E}_z^\Re\right)\;dS}
+-\int_{\partial\Omega}{v^\Im\left(\nu^\Im\hat{\operatorname{A}}{E}_z^\Re\right)\;dS}
+=\int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Im}{\delta}{E}_z^\Re\right)\;dS}
+-\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Im}{\delta}{E}_z^\Re\right)\;dS}
 $$
 
 <!-- 16! -->
 $$
--\int_{\partial\Omega}{v^\Im\left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;dS}
-=\int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Im\right)\;dS}
--\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Re}{\delta}\vec{E}_z^\Im\right)\;dS}
+-\int_{\partial\Omega}{v^\Im\left(\nu^\Re\hat{\operatorname{A}}{E}_z^\Im\right)\;dS}
+=\int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Re}{\delta}{E}_z^\Im\right)\;dS}
+-\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Re}{\delta}{E}_z^\Im\right)\;dS}
 $$
 
 These boundary conditions are needed to simulate metal walls, so terms with imaginary permeability may be dropped.

@@ -90,10 +90,16 @@ class Ecurl():
         rz = -vec[0].dx(1) + vec[1].dx(0)
         return rz
 
-    def Z(self, vec):
+    def Z_real(self, vec):
         """Apply Z operator."""
         rx = self.solution._omega / (self.solution._beta * self.solution.c0) * vec[1]
         ry = -self.solution._omega / (self.solution._beta * self.solution.c0) * vec[0]
+        return ufl.as_vector((rx, ry))
+
+    def Z_complex(self, vec):
+        """Apply Z operator."""
+        rx = 1j*self.solution._omega / (self.solution._beta * self.solution.c0) * vec[1]
+        ry = -1j*self.solution._omega / (self.solution._beta * self.solution.c0) * vec[0]
         return ufl.as_vector((rx, ry))
 
     def __init__(self, solution, sibc=[]):
@@ -102,10 +108,16 @@ class Ecurl():
         self.mesh = solution.mesh
         self.solution = solution
 
-        for name in ["Js", "Ediv_perp_re", "Ediv_perp_im", "Ediv_z_re", "Ediv_z_im"]:
-            attr = getattr(self.solution, name)
-            if attr is None:
-                raise AttributeError(f"{name} function is not available")
+        if dolfinx.has_petsc_complex:
+            for name in ["Js", "Ediv_perp", "Ediv_z"]:
+                attr = getattr(self.solution, name)
+                if attr is None:
+                    raise AttributeError(f"{name} function is not available")
+        else:
+            for name in ["Js", "Ediv_perp_re", "Ediv_perp_im", "Ediv_z_re", "Ediv_z_im"]:
+                attr = getattr(self.solution, name)
+                if attr is None:
+                    raise AttributeError(f"{name} function is not available")
 
         for i in np.unique([bc.index for bc in sibc]):
             if np.sum([bc.index for bc in sibc] == 1) > 1:
@@ -116,11 +128,6 @@ class Ecurl():
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Setting curl function")
 
-        V = dolfinx.FunctionSpace(self.mesh.mesh, ufl.MixedElement(self.solution.Hcurl,
-                                                                   self.solution.Hcurl,
-                                                                   self.solution.H1,
-                                                                   self.solution.H1))
-
         omega = self.solution._omega
         # $$\frac{\omega}{\beta c_0}$$
         omega_v = omega / (self.solution._beta * self.solution.c0)
@@ -128,411 +135,522 @@ class Ecurl():
         omega2_v2 = omega_v ** 2
         A = self.A
         B = self.B
-        Z = self.Z
-        sigma = self.material_map.sigma
-        nu_re = self.material_map.nu_re
-        nu_im = self.material_map.nu_im
+        if dolfinx.has_petsc_complex:
+            Z = self.Z_complex
+            mu = self.material_map.mu
+        else:
+            Z = self.Z_real
+            sigma = self.material_map.sigma
+            nu_re = self.material_map.nu_re
+            nu_im = self.material_map.nu_im
         # $$\omega^2 \varepsilon_0 \varepsilon_r$$
         omega2_eps = omega**2 * self.material_map.eps
 
-        Eperp_re, Eperp_im, Ez_re, Ez_im = ufl.TrialFunctions(V)
-        w_re, w_im, v_re, v_im = ufl.TestFunctions(V)
-
         self._a_p = 0
+        self._L_p = 0
 
-        r"""
-        1
-        $$
-        S^{\Re\Re}_{\perp\perp}
-        =\int_\Omega{\left(\hat{\operatorname{B}}\vec{w}^\Re\right)
-        \left(\nu^\Re\hat{\operatorname{B}}\vec{E}_\perp^\Re\right)\;d\Omega}
-        +\frac{\omega^2}{\beta^2 c_0^2}\int_\Omega{\vec{w}^\Re\nu^\Re\vec{E}^\Re_\perp\;d\Omega}
-        $$
-        """
-        self._a_p += inner(B(w_re), nu_re * B(Eperp_re)) * dx
-        self._a_p += inner(w_re, omega2_v2 * nu_re * Eperp_re) * dx
+        if dolfinx.has_petsc_complex:
+            V = dolfinx.FunctionSpace(self.mesh.mesh, ufl.MixedElement(self.solution.Hcurl,
+                                                                       self.solution.H1))
 
-        r"""
-        4
-        $$
-        S^{\Im\Re}_{z\perp}
-        =-\int_\Omega{\vec{w}^\Re\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}\vec{E}^\Im_z\;d\Omega}
-        $$
-        """
-        self._a_p += -inner(w_re, Z(nu_re * A(Ez_im))) * dx
+            Eperp, Ez = ufl.TrialFunctions(V)
+            w, v = ufl.TestFunctions(V)
 
-        r"""
-        6
-        $$
-        S^{\Im\Im}_{\perp\perp}
-        =\int_\Omega{\left(\hat{\operatorname{B}}\vec{w}^\Im\right)
-        \left(\nu^\Re\hat{\operatorname{B}}\vec{E}_\perp^\Im\right)\;d\Omega}
-        +\frac{\omega^2}{\beta^2 c_0^2}\int_\Omega{\vec{w}^\Im\nu^\Re\vec{E}^\Im_\perp\;d\Omega}
-        $$
-        """
-        self._a_p += inner(B(w_im), nu_re * B(Eperp_im)) * dx
-        self._a_p += inner(w_im, omega2_v2 * nu_re * Eperp_im) * dx
+            r"""
+            1
+            $$\hat{S}_{\perp\perp}
+            =\int_\Omega{\left(\hat{\operatorname{B}}\vec{w}\right)\left(\frac{1}{\mu}\hat{\operatorname{B}}\underline{\vec{E}}_\perp\right)\;d\Omega}
+            +\frac{\omega^2}{\beta^2 c_0^2}\int_\Omega{\vec{w}\frac{1}{\mu}\underline{\vec{E}}_\perp\;d\Omega}$$
+            """
+            self._a_p += inner(1/mu * B(Eperp), B(w)) * dx
+            self._a_p += +inner(omega2_v2 * 1/mu * Eperp, w) * dx
 
-        r"""
-        7
-        $$
-        S^{\Re\Im}_{z\perp}
-        =\int_\Omega{\vec{w}^\Im\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}\vec{E}^\Re_z\;d\Omega}
-        $$
-        """
-        self._a_p += inner(w_im, Z(nu_re * A(Ez_re))) * dx
-
-        r"""
-        10
-        $$
-        S^{\Im\Re}_{\perp z}
-        =-\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
-        \left(\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Im_\perp\right)\;d\Omega}
-        $$
-        """
-        self._a_p += -inner(A(v_re), nu_re * Z(Eperp_im)) * dx
-
-        r"""
-        11
-        $$
-        S^{\Re\Re}_{z z}
-        =\int_\Omega{\left(\hat{\operatorname{A}} v^\Re\right)
-        \left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;d\Omega}
-        $$
-        """
-        self._a_p += inner(A(v_re), nu_re * A(Ez_re)) * dx
-
-        r"""
-        13
-        $$
-        S^{\Re\Im}_{\perp z}
-        =\int_\Omega{\left(\hat{\operatorname{A}}v^\Im\right)
-        \left(\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Re_\perp\right)\;d\Omega}
-        $$
-        """
-        self._a_p += inner(A(v_im), nu_re * Z(Eperp_re)) * dx
-
-        r"""
-        16
-        $$
-        S^{\Im\Im}_{z z}
-        =\int_\Omega{\left(\hat{\operatorname{A}} v^\Im\right)
-        \left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;d\Omega}
-        $$
-        """
-        self._a_p += inner(A(v_im), nu_re * A(Ez_im)) * dx
-
-        r"""
-        1
-        $$
-        M^{\Re\Re}_{\varepsilon\perp}=
-        -\omega^2\int_{\Omega}{\vec{w}^\Re\varepsilon_0\varepsilon_r\vec{E}^\Re_\perp\;d\Omega}
-        $$
-        """
-        self._a_p += -inner(w_re, omega2_eps * Eperp_re) * dx
-
-        r"""
-        6
-        $$
-        M^{\Im\Im}_{\varepsilon\perp}=
-        -\omega^2\int_{\Omega}{\vec{w}^\Im\varepsilon_0\varepsilon_r\vec{E}^\Im_\perp\;d\Omega}
-        $$
-        """
-        self._a_p += -inner(w_im, omega2_eps * Eperp_im) * dx
-
-        r"""
-        11
-        $$
-        M^{\Re\Re}_{\varepsilon z}=
-        -\omega^2\int_{\Omega}{v^\Re\varepsilon_0\varepsilon_r E^\Re_z\;d\Omega}
-        $$
-        """
-        self._a_p += -inner(v_re, omega2_eps * Ez_re) * dx
-
-        r"""
-        16
-        $$
-        M^{\Im\Im}_{\varepsilon z}=
-        -\omega^2\int_{\Omega}{v^\Im\varepsilon_0\varepsilon_r E^\Im_z\;d\Omega}
-        $$
-        """
-        self._a_p += -inner(v_im, omega2_eps * Ez_im) * dx
-
-        if nu_im is not None:
             r"""
             2
-            $$
-            S^{\Im\Re}_{\perp\perp}
-            =-\int_\Omega{\left(\hat{\operatorname{B}}\vec{w}^\Re\right)
-            \left(\nu^\Im\hat{\operatorname{B}}\vec{E}_\perp^\Im\right)\;d\Omega}
-            -\frac{\omega^2}{\beta^2 c_0^2}\int_\Omega{\vec{w}^\Re\nu^\Im\vec{E}^\Im_\perp\;d\Omega}
-            $$
+            $$\hat{S}_{\perp z}
+            =\int_{\Omega}{\vec{w}\hat{\operatorname{Z}}\frac{1}{\underline{\mu}}\hat{\operatorname{A}}\underline{E}_z\;d\Omega}$$
             """
-            self._a_p += -inner(B(w_re), nu_im * B(Eperp_im)) * dx
-            self._a_p += -omega2_v2 * inner(w_re, nu_im * Eperp_im) * dx
+            self._a_p += inner(Z(1/mu * A(Ez)), w) * dx
 
             r"""
             3
-            $$
-            S^{\Re\Re}_{z\perp}
-            =-\int_\Omega{\vec{w}^\Re\hat{\operatorname{Z}}\nu^\Im\hat{\operatorname{A}}\vec{E}^\Re_z\;d\Omega}
-            $$
+            $$\hat{S}_{z\perp}
+            =\int_\Omega{\left(\hat{\operatorname{A}}v\right)
+            \left(\frac{1}{\mu}\hat{\operatorname{Z}}\underline{\vec{E}}_\perp\right)\;d\Omega}$$
             """
-            self._a_p += -inner(w_re, Z(nu_im * A(Ez_re))) * dx
+            self._a_p += inner(1/mu * Z(Eperp), A(v)) * dx
 
             r"""
-            5
+            4
+            $$\hat{S}_{zz}\underline{E}_z
+            =\int_\Omega{\left(\hat{\operatorname{A}} v\right)
+            \left(\frac{1}{\mu}\hat{\operatorname{A}}\underline{E}_z\right)\;d\Omega}$$
+            """
+            self._a_p += inner(1/mu * A(Ez), A(v)) * dx
+
+            r"""
+            1
             $$
-            S^{\Re\Im}_{\perp\perp}
+            M_{\perp}=
+            -\omega^2\int_{\Omega}{\vec{w}\underline{\varepsilon}\underline{\vec{E}}_\perp\;d\Omega}
+            $$
+            """
+            self._a_p += -inner(omega2_eps * Eperp, w) * dx
+
+            r"""
+            4
+            $$
+            M_{z}=
+            -\omega^2\int_{\Omega}{v\underline{\varepsilon}\underline{E}_z\;d\Omega}
+            $$
+            """
+            self._a_p += -inner(omega2_eps * Ez, v) * dx
+
+            r"""
+            $$
+            J_s = -j\omega\int_\Omega{v J_s \;d\Omega}
+            $$
+            """
+            self._L_p += -1j * inner(omega * self.solution.Js, v) * dx
+
+            r"""
+            1
+            $$
+            N_{\perp}=
+            \omega^2\int_{\Omega}{\vec{w}\underline{\varepsilon}\underline{\vec{E}}_\perp\;d\Omega}
+            $$
+            """
+            self._L_p += inner(omega2_eps * self.solution.Ediv_perp, w) * dx
+
+            r"""
+            4
+            $$
+            N_{z}=
+            \omega^2\int_{\Omega}{v\underline{\varepsilon}\underline{E}_z\;d\Omega}
+            $$
+            """
+            self._L_p += inner(omega2_eps * self.solution.Ediv_z, v) * dx
+
+        else:
+            V = dolfinx.FunctionSpace(self.mesh.mesh, ufl.MixedElement(self.solution.Hcurl,
+                                                                       self.solution.Hcurl,
+                                                                       self.solution.H1,
+                                                                       self.solution.H1))
+
+            Eperp_re, Eperp_im, Ez_re, Ez_im = ufl.TrialFunctions(V)
+            w_re, w_im, v_re, v_im = ufl.TestFunctions(V)
+
+            r"""
+            1
+            $$
+            S^{\Re\Re}_{\perp\perp}
+            =\int_\Omega{\left(\hat{\operatorname{B}}\vec{w}^\Re\right)
+            \left(\nu^\Re\hat{\operatorname{B}}\vec{E}_\perp^\Re\right)\;d\Omega}
+            +\frac{\omega^2}{\beta^2 c_0^2}\int_\Omega{\vec{w}^\Re\nu^\Re\vec{E}^\Re_\perp\;d\Omega}
+            $$
+            """
+            self._a_p += inner(B(w_re), nu_re * B(Eperp_re)) * dx
+            self._a_p += inner(w_re, omega2_v2 * nu_re * Eperp_re) * dx
+
+            r"""
+            4
+            $$
+            S^{\Im\Re}_{z\perp}
+            =-\int_\Omega{\vec{w}^\Re\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}\vec{E}^\Im_z\;d\Omega}
+            $$
+            """
+            self._a_p += -inner(w_re, Z(nu_re * A(Ez_im))) * dx
+
+            r"""
+            6
+            $$
+            S^{\Im\Im}_{\perp\perp}
             =\int_\Omega{\left(\hat{\operatorname{B}}\vec{w}^\Im\right)
-            \left(\nu^\Im\hat{\operatorname{B}}\vec{E}_\perp^\Re\right)\;d\Omega}
-            +\frac{\omega^2}{\beta^2 c_0^2}\int_\Omega{\vec{w}^\Im\nu^\Im\vec{E}^\Re_\perp\;d\Omega}
+            \left(\nu^\Re\hat{\operatorname{B}}\vec{E}_\perp^\Im\right)\;d\Omega}
+            +\frac{\omega^2}{\beta^2 c_0^2}\int_\Omega{\vec{w}^\Im\nu^\Re\vec{E}^\Im_\perp\;d\Omega}
             $$
             """
-            self._a_p += inner(B(w_im), nu_im * B(Eperp_re)) * dx
-            self._a_p += omega2_v2 * inner(w_im, nu_im * Eperp_re) * dx
+            self._a_p += inner(B(w_im), nu_re * B(Eperp_im)) * dx
+            self._a_p += inner(w_im, omega2_v2 * nu_re * Eperp_im) * dx
 
             r"""
-            8
+            7
             $$
-            S^{\Im\Im}_{z\perp}
-            =-\int_\Omega{\vec{w}^\Im\hat{\operatorname{Z}}\nu^\Im\hat{\operatorname{A}}\vec{E}^\Im_z\;d\Omega}
+            S^{\Re\Im}_{z\perp}
+            =\int_\Omega{\vec{w}^\Im\hat{\operatorname{Z}}\nu^\Re\hat{\operatorname{A}}\vec{E}^\Re_z\;d\Omega}
             $$
             """
-            self._a_p += -inner(w_im, Z(nu_im * A(Ez_im))) * dx
+            self._a_p += inner(w_im, Z(nu_re * A(Ez_re))) * dx
 
             r"""
-            9
+            10
             $$
-            S^{\Re\Re}_{\perp z}
+            S^{\Im\Re}_{\perp z}
             =-\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
-            \left(\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Re_\perp\right)\;d\Omega}
+            \left(\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Im_\perp\right)\;d\Omega}
             $$
             """
-            self._a_p += -inner(A(v_re), nu_im * Z(Eperp_re)) * dx
+            self._a_p += -inner(A(v_re), nu_re * Z(Eperp_im)) * dx
 
             r"""
-            12
+            11
             $$
-            S^{\Im\Re}_{z z}
-            =-\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
-            \left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;d\Omega}
+            S^{\Re\Re}_{z z}
+            =\int_\Omega{\left(\hat{\operatorname{A}} v^\Re\right)
+            \left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;d\Omega}
             $$
             """
-            self._a_p += -inner(A(v_re), nu_im * A(Ez_im)) * dx
+            self._a_p += inner(A(v_re), nu_re * A(Ez_re)) * dx
 
             r"""
-            14
+            13
             $$
-            S^{\Im\Im}_{\perp z}
-            =-\int_\Omega{\left(\hat{\operatorname{A}}v^\Im\right)
-            \left(\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Im_\perp\right)\;d\Omega}
+            S^{\Re\Im}_{\perp z}
+            =\int_\Omega{\left(\hat{\operatorname{A}}v^\Im\right)
+            \left(\nu^\Re\hat{\operatorname{Z}}\vec{E}^\Re_\perp\right)\;d\Omega}
             $$
             """
-            self._a_p += -inner(A(v_im), nu_im * Z(Eperp_im)) * dx
+            self._a_p += inner(A(v_im), nu_re * Z(Eperp_re)) * dx
 
             r"""
-            15
+            16
             $$
-            S^{\Re\Im}_{z z}
+            S^{\Im\Im}_{z z}
             =\int_\Omega{\left(\hat{\operatorname{A}} v^\Im\right)
-            \left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;d\Omega}
+            \left(\nu^\Re\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;d\Omega}
             $$
             """
-            self._a_p += inner(A(v_im), nu_im * A(Ez_re)) * dx
-
-        if sigma is not None:
-            # $$\omega\sigma$$
-            omega_sigma = omega * sigma
+            self._a_p += inner(A(v_im), nu_re * A(Ez_im)) * dx
 
             r"""
-            2
+            1
             $$
-            M^{\Im\Re}_{\sigma\perp}=
-            -\omega\int_{\Omega}{\vec{w}^\Re\sigma\vec{E}^\Im_\perp\;d\Omega}
+            M^{\Re\Re}_{\varepsilon\perp}=
+            -\omega^2\int_{\Omega}{\vec{w}^\Re\varepsilon_0\varepsilon_r\vec{E}^\Re_\perp\;d\Omega}
             $$
             """
-            self._a_p += -inner(w_re, omega_sigma * Eperp_im) * dx
+            self._a_p += -inner(w_re, omega2_eps * Eperp_re) * dx
 
             r"""
-            5
+            6
             $$
-            M^{\Re\Im}_{\sigma\perp}=
-            \omega\int_{\Omega}{\vec{w}^\Im\sigma\vec{E}^\Re_\perp\;d\Omega}
+            M^{\Im\Im}_{\varepsilon\perp}=
+            -\omega^2\int_{\Omega}{\vec{w}^\Im\varepsilon_0\varepsilon_r\vec{E}^\Im_\perp\;d\Omega}
             $$
             """
-            self._a_p += inner(w_im, omega_sigma * Eperp_re) * dx
+            self._a_p += -inner(w_im, omega2_eps * Eperp_im) * dx
 
             r"""
-            12
+            11
             $$
-            M^{\Im\Re}_{\sigma z}=
-            -\omega\int_{\Omega}{v^\Re\sigma E^\Im_z\;d\Omega}
+            M^{\Re\Re}_{\varepsilon z}=
+            -\omega^2\int_{\Omega}{v^\Re\varepsilon_0\varepsilon_r E^\Re_z\;d\Omega}
             $$
             """
-            self._a_p += -inner(v_re, omega_sigma * Ez_im) * dx
+            self._a_p += -inner(v_re, omega2_eps * Ez_re) * dx
 
             r"""
-            15
+            16
             $$
-            M^{\Re\Im}_{\sigma z}=
-            \omega\int_{\Omega}{v^\Im\sigma E^\Re_z\;d\Omega}
+            M^{\Im\Im}_{\varepsilon z}=
+            -\omega^2\int_{\Omega}{v^\Im\varepsilon_0\varepsilon_r E^\Im_z\;d\Omega}
             $$
             """
-            self._a_p += inner(v_im, omega_sigma * Ez_re) * dx
+            self._a_p += -inner(v_im, omega2_eps * Ez_im) * dx
 
-        r"""
-        $$
-        J_s^\Im = -\omega\int_\Omega{v^\Im J_s \;d\Omega}
-        $$
-        """
-        self._L_p = -inner(v_im, omega * self.solution.Js) * dx
+            if nu_im is not None:
+                r"""
+                2
+                $$
+                S^{\Im\Re}_{\perp\perp}
+                =-\int_\Omega{\left(\hat{\operatorname{B}}\vec{w}^\Re\right)
+                \left(\nu^\Im\hat{\operatorname{B}}\vec{E}_\perp^\Im\right)\;d\Omega}
+                -\frac{\omega^2}{\beta^2 c_0^2}\int_\Omega{\vec{w}^\Re\nu^\Im\vec{E}^\Im_\perp\;d\Omega}
+                $$
+                """
+                self._a_p += -inner(B(w_re), nu_im * B(Eperp_im)) * dx
+                self._a_p += -omega2_v2 * inner(w_re, nu_im * Eperp_im) * dx
 
-        r"""
-        1
-        $$
-        N^{\Re\Re}_{\varepsilon\perp}=
-        \omega^2\int_{\Omega}{\vec{w}^\Re\varepsilon_0\varepsilon_r\vec{E}^\Re_\perp\;d\Omega}
-        $$
-        """
-        self._L_p += inner(w_re, omega2_eps * self.solution.Ediv_perp_re) * dx
+                r"""
+                3
+                $$
+                S^{\Re\Re}_{z\perp}
+                =-\int_\Omega{\vec{w}^\Re\hat{\operatorname{Z}}\nu^\Im\hat{\operatorname{A}}\vec{E}^\Re_z\;d\Omega}
+                $$
+                """
+                self._a_p += -inner(w_re, Z(nu_im * A(Ez_re))) * dx
 
-        r"""
-        6
-        $$
-        N^{\Im\Im}_{\varepsilon\perp}=
-        \omega^2\int_{\Omega}{\vec{w}^\Im\varepsilon_0\varepsilon_r\vec{E}^\Im_\perp\;d\Omega}
-        $$
-        """
-        self._L_p += inner(w_im, omega2_eps * self.solution.Ediv_perp_im) * dx
+                r"""
+                5
+                $$
+                S^{\Re\Im}_{\perp\perp}
+                =\int_\Omega{\left(\hat{\operatorname{B}}\vec{w}^\Im\right)
+                \left(\nu^\Im\hat{\operatorname{B}}\vec{E}_\perp^\Re\right)\;d\Omega}
+                +\frac{\omega^2}{\beta^2 c_0^2}\int_\Omega{\vec{w}^\Im\nu^\Im\vec{E}^\Re_\perp\;d\Omega}
+                $$
+                """
+                self._a_p += inner(B(w_im), nu_im * B(Eperp_re)) * dx
+                self._a_p += omega2_v2 * inner(w_im, nu_im * Eperp_re) * dx
 
-        r"""
-        11
-        $$
-        N^{\Re\Re}_{\varepsilon z}=
-        \omega^2\int_{\Omega}{v^\Re\varepsilon_0\varepsilon_r E^\Re_z\;d\Omega}
-        $$
-        """
-        self._L_p += inner(v_re, omega2_eps * self.solution.Ediv_z_re) * dx
+                r"""
+                8
+                $$
+                S^{\Im\Im}_{z\perp}
+                =-\int_\Omega{\vec{w}^\Im\hat{\operatorname{Z}}\nu^\Im\hat{\operatorname{A}}\vec{E}^\Im_z\;d\Omega}
+                $$
+                """
+                self._a_p += -inner(w_im, Z(nu_im * A(Ez_im))) * dx
 
-        r"""
-        16
-        $$
-        N^{\Im\Im}_{\varepsilon z}=
-        \omega^2\int_{\Omega}{v^\Im\varepsilon_0\varepsilon_r E^\Im_z\;d\Omega}
-        $$
-        """
-        self._L_p += inner(v_im, omega2_eps * self.solution.Ediv_z_im) * dx
+                r"""
+                9
+                $$
+                S^{\Re\Re}_{\perp z}
+                =-\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
+                \left(\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Re_\perp\right)\;d\Omega}
+                $$
+                """
+                self._a_p += -inner(A(v_re), nu_im * Z(Eperp_re)) * dx
 
-        if sigma is not None:
+                r"""
+                12
+                $$
+                S^{\Im\Re}_{z z}
+                =-\int_\Omega{\left(\hat{\operatorname{A}}v^\Re\right)
+                \left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Im\right)\;d\Omega}
+                $$
+                """
+                self._a_p += -inner(A(v_re), nu_im * A(Ez_im)) * dx
+
+                r"""
+                14
+                $$
+                S^{\Im\Im}_{\perp z}
+                =-\int_\Omega{\left(\hat{\operatorname{A}}v^\Im\right)
+                \left(\nu^\Im\hat{\operatorname{Z}}\vec{E}^\Im_\perp\right)\;d\Omega}
+                $$
+                """
+                self._a_p += -inner(A(v_im), nu_im * Z(Eperp_im)) * dx
+
+                r"""
+                15
+                $$
+                S^{\Re\Im}_{z z}
+                =\int_\Omega{\left(\hat{\operatorname{A}} v^\Im\right)
+                \left(\nu^\Im\hat{\operatorname{A}}\vec{E}_z^\Re\right)\;d\Omega}
+                $$
+                """
+                self._a_p += inner(A(v_im), nu_im * A(Ez_re)) * dx
+
+            if sigma is not None:
+                # $$\omega\sigma$$
+                omega_sigma = omega * sigma
+
+                r"""
+                2
+                $$
+                M^{\Im\Re}_{\sigma\perp}=
+                -\omega\int_{\Omega}{\vec{w}^\Re\sigma\vec{E}^\Im_\perp\;d\Omega}
+                $$
+                """
+                self._a_p += -inner(w_re, omega_sigma * Eperp_im) * dx
+
+                r"""
+                5
+                $$
+                M^{\Re\Im}_{\sigma\perp}=
+                \omega\int_{\Omega}{\vec{w}^\Im\sigma\vec{E}^\Re_\perp\;d\Omega}
+                $$
+                """
+                self._a_p += inner(w_im, omega_sigma * Eperp_re) * dx
+
+                r"""
+                12
+                $$
+                M^{\Im\Re}_{\sigma z}=
+                -\omega\int_{\Omega}{v^\Re\sigma E^\Im_z\;d\Omega}
+                $$
+                """
+                self._a_p += -inner(v_re, omega_sigma * Ez_im) * dx
+
+                r"""
+                15
+                $$
+                M^{\Re\Im}_{\sigma z}=
+                \omega\int_{\Omega}{v^\Im\sigma E^\Re_z\;d\Omega}
+                $$
+                """
+                self._a_p += inner(v_im, omega_sigma * Ez_re) * dx
+
             r"""
-            2
             $$
-            N^{\Im\Re}_{\sigma\perp}=
-            \omega\int_{\Omega}{\vec{w}^\Re\sigma\vec{E}^\Im_\perp\;d\Omega}
+            J_s^\Im = -\omega\int_\Omega{v^\Im J_s \;d\Omega}
             $$
             """
-            self._L_p += inner(w_re, omega_sigma * self.solution.Ediv_perp_im) * dx
+            self._L_p += -inner(v_im, omega * self.solution.Js) * dx
 
             r"""
-            5
+            1
             $$
-            N^{\Re\Im}_{\sigma\perp}=
-            -\omega\int_{\Omega}{\vec{w}^\Im\sigma\vec{E}^\Re_\perp\;d\Omega}
+            N^{\Re\Re}_{\varepsilon\perp}=
+            \omega^2\int_{\Omega}{\vec{w}^\Re\varepsilon_0\varepsilon_r\vec{E}^\Re_\perp\;d\Omega}
             $$
             """
-            self._L_p += -inner(w_im, omega_sigma * self.solution.Ediv_perp_re) * dx
+            self._L_p += inner(w_re, omega2_eps * self.solution.Ediv_perp_re) * dx
 
             r"""
-            12
+            6
             $$
-            N^{\Im\Re}_{\sigma z}=
-            \omega\int_{\Omega}{v^\Re\sigma E^\Im_z\;d\Omega}
+            N^{\Im\Im}_{\varepsilon\perp}=
+            \omega^2\int_{\Omega}{\vec{w}^\Im\varepsilon_0\varepsilon_r\vec{E}^\Im_\perp\;d\Omega}
             $$
             """
-            self._L_p += inner(v_re, omega_sigma * self.solution.Ediv_z_im) * dx
+            self._L_p += inner(w_im, omega2_eps * self.solution.Ediv_perp_im) * dx
 
             r"""
-            15
+            11
             $$
-            N^{\Re\Im}_{\sigma z}=
-            -\omega\int_{\Omega}{v^\Im\sigma E^\Re_z\;d\Omega}
+            N^{\Re\Re}_{\varepsilon z}=
+            \omega^2\int_{\Omega}{v^\Re\varepsilon_0\varepsilon_r E^\Re_z\;d\Omega}
             $$
             """
-            self._L_p += -inner(v_im, omega_sigma * self.solution.Ediv_z_re) * dx
+            self._L_p += inner(v_re, omega2_eps * self.solution.Ediv_z_re) * dx
+
+            r"""
+            16
+            $$
+            N^{\Im\Im}_{\varepsilon z}=
+            \omega^2\int_{\Omega}{v^\Im\varepsilon_0\varepsilon_r E^\Im_z\;d\Omega}
+            $$
+            """
+            self._L_p += inner(v_im, omega2_eps * self.solution.Ediv_z_im) * dx
+
+            if sigma is not None:
+                r"""
+                2
+                $$
+                N^{\Im\Re}_{\sigma\perp}=
+                \omega\int_{\Omega}{\vec{w}^\Re\sigma\vec{E}^\Im_\perp\;d\Omega}
+                $$
+                """
+                self._L_p += inner(w_re, omega_sigma * self.solution.Ediv_perp_im) * dx
+
+                r"""
+                5
+                $$
+                N^{\Re\Im}_{\sigma\perp}=
+                -\omega\int_{\Omega}{\vec{w}^\Im\sigma\vec{E}^\Re_\perp\;d\Omega}
+                $$
+                """
+                self._L_p += -inner(w_im, omega_sigma * self.solution.Ediv_perp_re) * dx
+
+                r"""
+                12
+                $$
+                N^{\Im\Re}_{\sigma z}=
+                \omega\int_{\Omega}{v^\Re\sigma E^\Im_z\;d\Omega}
+                $$
+                """
+                self._L_p += inner(v_re, omega_sigma * self.solution.Ediv_z_im) * dx
+
+                r"""
+                15
+                $$
+                N^{\Re\Im}_{\sigma z}=
+                -\omega\int_{\Omega}{v^\Im\sigma E^\Re_z\;d\Omega}
+                $$
+                """
+                self._L_p += -inner(v_im, omega_sigma * self.solution.Ediv_z_re) * dx
 
         sibc_measures, self._sibc_deltas = self.__create_sibc_measures(sibc)
         if len(sibc_measures) > 0:
             n = -ufl.FacetNormal(self.material_map.mesh.mesh)
             tau = ufl.as_vector((-n[1], n[0]))
             for ds, (k, _) in zip(sibc_measures, self._sibc_deltas):
-                r"""
-                1-1
-                $$
-                -\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)
-                \left(\frac{1}{\mu_0\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
-                $$
-                """
-                self._a_p += -k * inner(dot(w_re, tau), dot(Eperp_re, tau)) * ds
+                if dolfinx.has_petsc_complex:
+                    r"""
+                    1
+                    $$B_{\perp\perp}
+                    =-\int_{\partial\Omega}{\left(\vec{w}\vec{\tau}\right)\left(\frac{1+j}{\delta\mu}\vec{E}_\perp\vec{\tau}\right)\;dS}$$
+                    """
+                    self._a_p += -k * inner(dot((1 + 1j) * Eperp, tau), dot(w, tau)) * ds
 
-                r"""
-                1-2
-                $$
-                -\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)
-                \left(\frac{1}{\mu_0\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
-                $$
-                """
-                self._a_p += -k * inner(dot(w_im, tau), dot(Eperp_re, tau)) * ds
+                    r"""
+                    4
+                    $$
+                    B_{zz}
+                    =\int_{\partial\Omega}{v\frac{1+j}{\delta\mu}\underline{E}_z\;dS}
+                    $$
+                    """
+                    self._a_p += k * inner((1 + 1j) * Ez, v) * ds
 
-                r"""
-                6-1
-                $$
-                -\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)
-                \left(\frac{1}{\mu_0\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
-                $$
-                """
-                self._a_p += -k * inner(dot(w_im, tau), dot(Eperp_im, tau)) * ds
+                else:
+                    r"""
+                    1-1
+                    $$
+                    -\int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)
+                    \left(\frac{1}{\mu_0\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
+                    $$
+                    """
+                    self._a_p += -k * inner(dot(w_re, tau), dot(Eperp_re, tau)) * ds
 
-                r"""
-                6-2
-                $$
-                \int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)
-                \left(\frac{1}{\mu_0\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
-                $$
-                """
-                self._a_p += k * inner(dot(w_re, tau), dot(Eperp_im, tau)) * ds
+                    r"""
+                    1-2
+                    $$
+                    -\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)
+                    \left(\frac{1}{\mu_0\delta}\vec{E}_\perp^\Re\vec{\tau}\right)\;dS}
+                    $$
+                    """
+                    self._a_p += -k * inner(dot(w_im, tau), dot(Eperp_re, tau)) * ds
 
-                r"""
-                11-1
-                $$
-                \int_{\partial\Omega}{v^\Re\left(\frac{1}{\mu_0\delta}\vec{E}_z^\Re\right)\;dS}
-                $$
-                """
-                self._a_p += k * inner(v_re, Ez_re) * ds
+                    r"""
+                    6-1
+                    $$
+                    -\int_{\partial\Omega}{\left(\vec{w}^\Im\vec{\tau}\right)
+                    \left(\frac{1}{\mu_0\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
+                    $$
+                    """
+                    self._a_p += -k * inner(dot(w_im, tau), dot(Eperp_im, tau)) * ds
 
-                r"""
-                11-2
-                $$
-                \int_{\partial\Omega}{v^\Im\left(\frac{1}{\mu_0\delta}\vec{E}_z^\Re\right)\;dS}
-                $$
-                """
-                self._a_p += k * inner(v_im, Ez_re) * ds
+                    r"""
+                    6-2
+                    $$
+                    \int_{\partial\Omega}{\left(\vec{w}^\Re\vec{\tau}\right)
+                    \left(\frac{1}{\mu_0\delta}\vec{E}_\perp^\Im\vec{\tau}\right)\;dS}
+                    $$
+                    """
+                    self._a_p += k * inner(dot(w_re, tau), dot(Eperp_im, tau)) * ds
 
-                r"""
-                16-1
-                $$
-                \int_{\partial\Omega}{v^\Im\left(\frac{1}{\mu_0\delta}\vec{E}_z^\Im\right)\;dS}
-                $$
-                """
-                self._a_p += k * inner(v_im, Ez_im) * ds
+                    r"""
+                    11-1
+                    $$
+                    \int_{\partial\Omega}{v^\Re\left(\frac{1}{\mu_0\delta}\vec{E}_z^\Re\right)\;dS}
+                    $$
+                    """
+                    self._a_p += k * inner(v_re, Ez_re) * ds
 
-                r"""
-                16-2
-                $$
-                -\int_{\partial\Omega}{v^\Re\left(\frac{1}{\mu_0\delta}\vec{E}_z^\Im\right)\;dS}
-                $$
-                """
-                self._a_p += -k * inner(v_re, Ez_im) * ds
+                    r"""
+                    11-2
+                    $$
+                    \int_{\partial\Omega}{v^\Im\left(\frac{1}{\mu_0\delta}\vec{E}_z^\Re\right)\;dS}
+                    $$
+                    """
+                    self._a_p += k * inner(v_im, Ez_re) * ds
+
+                    r"""
+                    16-1
+                    $$
+                    \int_{\partial\Omega}{v^\Im\left(\frac{1}{\mu_0\delta}\vec{E}_z^\Im\right)\;dS}
+                    $$
+                    """
+                    self._a_p += k * inner(v_im, Ez_im) * ds
+
+                    r"""
+                    16-2
+                    $$
+                    -\int_{\partial\Omega}{v^\Re\left(\frac{1}{\mu_0\delta}\vec{E}_z^\Im\right)\;dS}
+                    $$
+                    """
+                    self._a_p += -k * inner(v_re, Ez_im) * ds
 
         self._bcs = self.__set_dirichlet(V, sibc)
 
@@ -541,15 +659,22 @@ class Ecurl():
 
         self._Ecurl = dolfinx.Function(V)
 
-        # FIXME: workaround for https://github.com/FEniCS/dolfinx/issues/1577
-        (self.solution.Ecurl_perp_re,
-         self.solution.Ecurl_perp_im,
-         self.solution.Ecurl_z_re,
-         self.solution.Ecurl_z_im) = self._Ecurl.split()
-        (self.solution.ecurl_perp_re,
-         self.solution.ecurl_perp_im,
-         self.solution.ecurl_z_re,
-         self.solution.ecurl_z_im) = ufl.split(self._Ecurl)
+        if dolfinx.has_petsc_complex:
+            # FIXME: workaround for https://github.com/FEniCS/dolfinx/issues/1577
+            (self.solution.Ecurl_perp,
+             self.solution.Ecurl_z) = self._Ecurl.split()
+            (self.solution.ecurl_perp,
+             self.solution.ecurl_z) = ufl.split(self._Ecurl)
+        else:
+            # FIXME: workaround for https://github.com/FEniCS/dolfinx/issues/1577
+            (self.solution.Ecurl_perp_re,
+             self.solution.Ecurl_perp_im,
+             self.solution.Ecurl_z_re,
+             self.solution.Ecurl_z_im) = self._Ecurl.split()
+            (self.solution.ecurl_perp_re,
+             self.solution.ecurl_perp_im,
+             self.solution.ecurl_z_re,
+             self.solution.ecurl_z_im) = ufl.split(self._Ecurl)
 
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Set curl function")
