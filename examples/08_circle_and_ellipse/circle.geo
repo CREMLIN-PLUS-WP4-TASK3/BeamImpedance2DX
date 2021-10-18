@@ -4,14 +4,14 @@ Mesh.Algorithm3D=1; // 1: Delaunay, 3: Initial mesh only, 4: Frontal, 7: MMG3D, 
 Mesh.Format=1; // 1: msh, 2: unv, 10: auto, 16: vtk, 19: vrml, 21: mail, 26: pos stat, 27: stl, 28: p3d, 30: mesh, 31: bdf, 32: cgns, 33: med, 34: diff, 38: ir3, 39: inp, 40: ply2, 41: celum, 42: su2, 47: tochnog, 49: neu, 50: matlab
 Mesh.RecombinationAlgorithm=1; // 0: simple, 1: blossom, 2: simple full-quad, 3: blossom full-quad
 
-d1 = 0.01;
-d2 = 0.04;
+d1 = 0.002;
+d2 = 0.008;
 dx1 = 0;
 dx2 = 0;
 dy1 = 0;
 dy2 = 0;
-mesh1 = 0.0007;
-mesh2 = 0.002;
+mesh1 = 0.0003;
+mesh2 = 0.0003;
 
 p0 = newp; Point(p0) = {dx1,dy1,0,mesh1};
 p1 = newp; Point(p1) = {d1+dx1,dy1,0,mesh1};
