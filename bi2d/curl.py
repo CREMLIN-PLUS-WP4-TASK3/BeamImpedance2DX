@@ -33,7 +33,6 @@ class Ecurl():
         else:
             u_bc = dolfinx.Function(V)
             with u_bc.vector.localForm() as loc:
-                loc.set(1)
                 loc.setValues(bc_dofs, np.full(bc_dofs.size, 0))
             u_bc.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
             return [dolfinx.DirichletBC(u_bc, bc_dofs)]
