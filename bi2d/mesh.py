@@ -63,3 +63,17 @@ class Mesh:
             maxx = np.max(values[:, 2])
             maxy = np.max(values[:, 3])
         return MPI.COMM_WORLD.bcast(((minx, miny), (maxx, maxy)), root=0)
+
+    def check_round(self, x0, y0, R, index):
+        """Check all points are inside circle."""
+        subdomain_indices = self.subdomains.indices[self.subdomains.values == index]
+        geometry_indices = np.unique(np.array([self.mesh.geometry.dofmap.links(i) for i in subdomain_indices])
+                                     .flatten())
+        if geometry_indices.size > 0:
+            geometry_points = self.mesh.geometry.x[geometry_indices]
+            x = geometry_points[:, 0]
+            y = geometry_points[:, 1]
+            return np.all(np.logical_or((x-x0)**2 + (y-y0)**2 < R**2,
+                                        np.isclose((x-x0)**2 + (y-y0)**2, R**2)))
+        else:
+            return True

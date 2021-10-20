@@ -93,6 +93,8 @@ class MaterialMapBase():
         (minx, miny), (maxx, maxy) = self.mesh.get_limits(self.beam_index)
         if not np.isclose(maxx - minx, maxy - miny):
             raise ValueError(f"Beam subdomain {beam_subdomain_index} does not appear to be round")
+        if not self.mesh.check_round((minx + maxx)/2, (miny + maxy)/2, (maxx - minx)/2, self.beam_index):
+            raise ValueError(f"Beam subdomain {beam_subdomain_index} does not appear to be round")
 
     def update_field(self, name):
         """Update material field map."""
