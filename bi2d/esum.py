@@ -37,13 +37,13 @@ class Esum():
         Vz = dolfinx.FunctionSpace(self.mesh.mesh, H1)
 
         if np.issubdtype(PETSc.ScalarType, np.complexfloating):
-            expr_list = [("Eperp", self.solution.Ediv_perp+self.solution.ecurl_perp, Vperp),
-                         ("Ez", self.solution.Ediv_z+self.solution.ecurl_z, Vz)]
+            expr_list = [("Eperp", self.solution.Ediv_perp + self.solution.ecurl_perp, Vperp),
+                         ("Ez", self.solution.Ediv_z + self.solution.ecurl_z, Vz)]
         else:
-            expr_list = [("Eperp_re", self.solution.Ediv_perp_re+self.solution.ecurl_perp_re, Vperp),
-                         ("Eperp_im", self.solution.Ediv_perp_im+self.solution.ecurl_perp_im, Vperp),
-                         ("Ez_re", self.solution.Ediv_z_re+self.solution.ecurl_z_re, Vz),
-                         ("Ez_im", self.solution.Ediv_z_im+self.solution.ecurl_z_im, Vz)]
+            expr_list = [("Eperp_re", self.solution.Ediv_perp_re + self.solution.ecurl_perp_re, Vperp),
+                         ("Eperp_im", self.solution.Ediv_perp_im + self.solution.ecurl_perp_im, Vperp),
+                         ("Ez_re", self.solution.Ediv_z_re + self.solution.ecurl_z_re, Vz),
+                         ("Ez_im", self.solution.Ediv_z_im + self.solution.ecurl_z_im, Vz)]
 
         for name, expr, V in expr_list:
             u, v = ufl.TrialFunction(V), ufl.TestFunction(V)

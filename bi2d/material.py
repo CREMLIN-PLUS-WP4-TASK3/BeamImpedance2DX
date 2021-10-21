@@ -93,7 +93,7 @@ class MaterialMapBase():
         (minx, miny), (maxx, maxy) = self.mesh.get_limits(self.beam_index)
         if not np.isclose(maxx - minx, maxy - miny):
             raise ValueError(f"Beam subdomain {beam_subdomain_index} does not appear to be round")
-        if not self.mesh.check_round((minx + maxx)/2, (miny + maxy)/2, (maxx - minx)/2, self.beam_index):
+        if not self.mesh.check_round((minx + maxx) / 2, (miny + maxy) / 2, (maxx - minx) / 2, self.beam_index):
             raise ValueError(f"Beam subdomain {beam_subdomain_index} does not appear to be round")
 
     def update_field(self, name):
@@ -214,9 +214,9 @@ class MaterialMapScalar(MaterialMapBase):
                  self.mu_im.vector.localForm() as mu_im, \
                  self.nu_re.vector.localForm() as nu_re, \
                  self.nu_im.vector.localForm() as nu_im:
-                val = mu_re / (mu_re*mu_re + mu_im*mu_im)
+                val = mu_re / (mu_re * mu_re + mu_im * mu_im)
                 val.copy(nu_re)
-                val = mu_im / (mu_re*mu_re + mu_im*mu_im)
+                val = mu_im / (mu_re * mu_re + mu_im * mu_im)
                 val.copy(nu_im)
 
     def _update(self):
@@ -283,7 +283,6 @@ class MaterialMapComplex(MaterialMapBase):
                     self.calculate_mu()
         if self.f != self._f_previous:
             self.calculate_eps()
-
 
 
 class ArrayInterpolate():

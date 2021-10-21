@@ -14,8 +14,8 @@ class Mesh:
             self.mesh = xdmf.read_mesh(name="Grid")
             self.subdomains = xdmf.read_meshtags(self.mesh, name="Grid")
             # self.mesh.topology.create_connectivity(self.mesh.topology.dim,
-            #                                        self.mesh.topology.dim-1)
-            self.mesh.topology.create_connectivity(self.mesh.topology.dim-1,
+            #                                        self.mesh.topology.dim - 1)
+            self.mesh.topology.create_connectivity(self.mesh.topology.dim - 1,
                                                    self.mesh.topology.dim)
         self.boundaries = None
         if boundary_file is not None:
@@ -73,7 +73,7 @@ class Mesh:
             geometry_points = self.mesh.geometry.x[geometry_indices]
             x = geometry_points[:, 0]
             y = geometry_points[:, 1]
-            return np.all(np.logical_or((x-x0)**2 + (y-y0)**2 < R**2,
-                                        np.isclose((x-x0)**2 + (y-y0)**2, R**2)))
+            return np.all(np.logical_or((x - x0)**2 + (y - y0)**2 < R**2,
+                                        np.isclose((x - x0)**2 + (y - y0)**2, R**2)))
         else:
             return True

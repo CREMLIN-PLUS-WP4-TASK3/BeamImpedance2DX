@@ -52,7 +52,7 @@ class Js():
         d = dolfinx.Function(function_space)
         dofs = dolfinx.fem.locate_dofs_geometrical(
             V,
-            lambda x: np.isclose((x[0] - x0)**2+(x[1] - y0)**2, R**2)
+            lambda x: np.isclose((x[0] - x0)**2 + (x[1] - y0)**2, R**2)
         )
         if dofs.size == 0:
             raise ValueError("Cannot set source function. No vertices on beam region boundary.")
@@ -63,14 +63,14 @@ class Js():
         def sinfunc(arg):
             x = np.real(arg[0])
             y = np.real(arg[1])
-            theta = np.arctan2(x-x0, y-y0)
+            theta = np.arctan2(x - x0, y - y0)
             return np.sin(theta - self.rotation) / R
 
         def dfunc(arg):
             x = np.real(arg[0])
             y = np.real(arg[1])
-            r = np.sqrt((x-x0)**2 + (y-y0)**2)
-            theta = np.arctan2(x-x0, y-y0)
+            r = np.sqrt((x - x0)**2 + (y - y0)**2)
+            theta = np.arctan2(x - x0, y - y0)
             return r * np.sin(theta - self.rotation)
 
         func.interpolate(sinfunc)
@@ -102,8 +102,8 @@ class Js():
         def dfunc(arg):
             x = np.real(arg[0])
             y = np.real(arg[1])
-            r = np.sqrt((x-x0)**2 + (y-y0)**2)
-            theta = np.arctan2(x-x0, y-y0)
+            r = np.sqrt((x - x0)**2 + (y - y0)**2)
+            theta = np.arctan2(x - x0, y - y0)
             return r * np.sin(theta - self.rotation)
 
         d.interpolate(dfunc)

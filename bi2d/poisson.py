@@ -52,13 +52,29 @@ class Ediv():
             phi_re, phi_im = ufl.TrialFunctions(V)
             v_re, v_im = ufl.TestFunctions(V)
 
-            # $$\varepsilon_0 \varepsilon_r \beta c_0\int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Re \;d\Omega}$$
+            r"""
+            $$
+            \varepsilon_0 \varepsilon_r \beta c_0\int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Re \;d\Omega}
+            $$
+            """
             self._a_phi += eps_v * inner(grad(v_re), grad(phi_re)) * dx
-            # $$\frac{\omega^2\varepsilon_0 \varepsilon_r}{\beta c_0}\int_\Omega{v^\Re\Phi^\Re \;d\Omega}$$
+            r"""
+            $$
+            \frac{\omega^2\varepsilon_0 \varepsilon_r}{\beta c_0}\int_\Omega{v^\Re\Phi^\Re \;d\Omega}
+            $$
+            """
             self._a_phi += omega2_eps_v * inner(v_re, phi_re) * dx
-            # $$ \varepsilon_0 \varepsilon_r \beta c_0\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Im \;d\Omega}$$
+            r"""
+            $$
+            \varepsilon_0 \varepsilon_r \beta c_0\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Im \;d\Omega}
+            $$
+            """
             self._a_phi += eps_v * inner(grad(v_im), grad(phi_im)) * dx
-            # $$\frac{\omega^2\varepsilon_0 \varepsilon_r}{\beta c_0}\int_\Omega{v^\Im\Phi^\Im \;d\Omega}$$
+            r"""
+            $$
+            \frac{\omega^2\varepsilon_0 \varepsilon_r}{\beta c_0}\int_\Omega{v^\Im\Phi^\Im \;d\Omega}
+            $$
+            """
             self._a_phi += omega2_eps_v * inner(v_im, phi_im) * dx
 
             if self.material_map.sigma is not None:
@@ -68,11 +84,23 @@ class Ediv():
                 # $$\frac{\omega \sigma}{\beta c_0}$$
                 omega_sigma_v = omega * self.material_map.sigma / v
 
-                # $$\frac{\sigma \beta c_0}{\omega}\int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Im \;d\Omega}$$
+                r"""
+                $$
+                \frac{\sigma \beta c_0}{\omega}\int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Im \;d\Omega}
+                $$
+                """
                 self._a_phi += sigma_v_omega * inner(grad(v_re), grad(phi_im)) * dx
-                # $$\frac{\omega\sigma}{\beta c_0}\int_\Omega{v^\Re\Phi^\Im \;d\Omega}$$
+                r"""
+                $$
+                \frac{\omega\sigma}{\beta c_0}\int_\Omega{v^\Re\Phi^\Im \;d\Omega}
+                $$
+                """
                 self._a_phi += omega_sigma_v * inner(v_re, phi_im) * dx
-                # $$-\frac{\sigma \beta c_0}{\omega}\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Re \;d\Omega}$$
+                r"""
+                $$
+                -\frac{\sigma \beta c_0}{\omega}\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Re \;d\Omega}
+                $$
+                """
                 self._a_phi += -sigma_v_omega * inner(grad(v_im), grad(phi_re)) * dx
                 # $$-\frac{\omega\sigma}{\beta c_0}\int_\Omega{v^\Im\Phi^\Re \;d\Omega}$$
                 self._a_phi += -omega_sigma_v * inner(v_im, phi_re) * dx
@@ -85,7 +113,7 @@ class Ediv():
 
         u_bc = dolfinx.Function(V)
         bc_facets = np.where(np.array(dolfinx.cpp.mesh.compute_boundary_facets(self.mesh.mesh.topology)) == 1)[0]
-        bc_dofs = dolfinx.fem.locate_dofs_topological(V, self.mesh.mesh.topology.dim-1, bc_facets)
+        bc_dofs = dolfinx.fem.locate_dofs_topological(V, self.mesh.mesh.topology.dim - 1, bc_facets)
         with u_bc.vector.localForm() as loc:
             loc.setValues(bc_dofs, np.full(bc_dofs.size, 0))
         u_bc.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)

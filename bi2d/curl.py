@@ -20,11 +20,11 @@ class Ecurl():
 
         bc_dofs = np.array([])
         bc_facets = np.where(np.array(dolfinx.cpp.mesh.compute_boundary_facets(self.mesh.mesh.topology)) == 1)[0]
-        bc_dofs = dolfinx.fem.locate_dofs_topological(V, self.mesh.mesh.topology.dim-1, bc_facets)
+        bc_dofs = dolfinx.fem.locate_dofs_topological(V, self.mesh.mesh.topology.dim - 1, bc_facets)
 
         # remove SIBC regions
         for bc in sibc:
-            dofs = dolfinx.fem.locate_dofs_topological(V, self.mesh.mesh.topology.dim-1,
+            dofs = dolfinx.fem.locate_dofs_topological(V, self.mesh.mesh.topology.dim - 1,
                                                        self.mesh.get_boundary(bc.index))
             bc_dofs = np.setdiff1d(bc_dofs, dofs)
 
@@ -97,8 +97,8 @@ class Ecurl():
 
     def Z_complex(self, vec):
         """Apply Z operator."""
-        rx = 1j*self.solution._omega / (self.solution._beta * self.solution.c0) * vec[1]
-        ry = -1j*self.solution._omega / (self.solution._beta * self.solution.c0) * vec[0]
+        rx = 1j * self.solution._omega / (self.solution._beta * self.solution.c0) * vec[1]
+        ry = -1j * self.solution._omega / (self.solution._beta * self.solution.c0) * vec[0]
         return ufl.as_vector((rx, ry))
 
     def __init__(self, solution, sibc=[]):
@@ -158,18 +158,20 @@ class Ecurl():
             r"""
             1
             $$\hat{S}_{\perp\perp}
-            =\int_\Omega{\left(\hat{\operatorname{B}}\vec{w}\right)\left(\frac{1}{\mu}\hat{\operatorname{B}}\underline{\vec{E}}_\perp\right)\;d\Omega}
+            =\int_\Omega{\left(\hat{\operatorname{B}}\vec{w}\right)\left(\frac{1}{\mu}
+            \hat{\operatorname{B}}\underline{\vec{E}}_\perp\right)\;d\Omega}
             +\frac{\omega^2}{\beta^2 c_0^2}\int_\Omega{\vec{w}\frac{1}{\mu}\underline{\vec{E}}_\perp\;d\Omega}$$
             """
-            self._a_p += inner(1/mu * B(Eperp), B(w)) * dx
-            self._a_p += +inner(omega2_v2 * 1/mu * Eperp, w) * dx
+            self._a_p += inner(1 / mu * B(Eperp), B(w)) * dx
+            self._a_p += inner(omega2_v2 * 1 / mu * Eperp, w) * dx
 
             r"""
             2
             $$\hat{S}_{\perp z}
-            =\int_{\Omega}{\vec{w}\hat{\operatorname{Z}}\frac{1}{\underline{\mu}}\hat{\operatorname{A}}\underline{E}_z\;d\Omega}$$
+            =\int_{\Omega}{\vec{w}\hat{\operatorname{Z}}\frac{1}{\underline{\mu}}
+            \hat{\operatorname{A}}\underline{E}_z\;d\Omega}$$
             """
-            self._a_p += inner(Z(1/mu * A(Ez)), w) * dx
+            self._a_p += inner(Z(1 / mu * A(Ez)), w) * dx
 
             r"""
             3
@@ -177,7 +179,7 @@ class Ecurl():
             =\int_\Omega{\left(\hat{\operatorname{A}}v\right)
             \left(\frac{1}{\mu}\hat{\operatorname{Z}}\underline{\vec{E}}_\perp\right)\;d\Omega}$$
             """
-            self._a_p += inner(1/mu * Z(Eperp), A(v)) * dx
+            self._a_p += inner(1 / mu * Z(Eperp), A(v)) * dx
 
             r"""
             4
@@ -185,7 +187,7 @@ class Ecurl():
             =\int_\Omega{\left(\hat{\operatorname{A}} v\right)
             \left(\frac{1}{\mu}\hat{\operatorname{A}}\underline{E}_z\right)\;d\Omega}$$
             """
-            self._a_p += inner(1/mu * A(Ez), A(v)) * dx
+            self._a_p += inner(1 / mu * A(Ez), A(v)) * dx
 
             r"""
             1
