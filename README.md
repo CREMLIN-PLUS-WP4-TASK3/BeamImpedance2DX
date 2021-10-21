@@ -10,15 +10,12 @@ Check out `examples` folder for calculation examples.
 In order to generate calculation meshes and visualize the simulated electromagnetic fields use
 [Gmsh](https://gmsh.info/) and [ParaView](https://www.paraview.org/).
 
-## Jupyter server with real numbers
+## Jupyter server with real/complex numbers
 ```bash
 docker run --init --rm --env OMP_NUM_THREADS=$(nproc) -p 8888:8888 -v "$(pwd)":/root/shared -w /root/shared dolfinx/lab
 ```
 
-## Jupyter server with complex numbers
-```bash
-docker run -v $(pwd):/root/shared -w "/root/shared" --rm --env OMP_NUM_THREADS=$(nproc) --env LD_LIBRARY_PATH=/usr/local/dolfinx-complex/lib --env PATH=/usr/local/dolfinx-complex/bin:/usr/local/gmsh-4.6.0-Linux64-sdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --env PKG_CONFIG_PATH=/usr/local/dolfinx-complex/lib/pkgconfig --env PETSC_ARCH=linux-gnu-complex-32 --env PYTHONPATH=/usr/local/dolfinx-complex/lib/python3.8/dist-packages -p 8888:8888 dolfinx/lab
-```
+Real and complex numbers can be selected in kernel selection box.
 
 ## Shell with real numbers
 To run script named `script.py`
