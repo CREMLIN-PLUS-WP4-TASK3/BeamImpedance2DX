@@ -310,7 +310,7 @@ class ArrayInterpolate():
         return np.interp([x], self.data_x, self.data_y)[0]
 
 
-if dolfinx.has_petsc_complex:
+if np.issubdtype(PETSc.ScalarType, np.complexfloating):
     MaterialMap = MaterialMapComplex
 else:
     MaterialMap = MaterialMapScalar

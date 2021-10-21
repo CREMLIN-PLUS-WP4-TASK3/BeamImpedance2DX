@@ -2,8 +2,10 @@
 
 import dolfinx
 import ufl
+import numpy as np
 from ufl import inner, dx
 from mpi4py import MPI
+from petsc4py import PETSc
 
 
 class Esum():
@@ -14,7 +16,7 @@ class Esum():
         self.solution = solution
         self.mesh = self.solution.mesh
 
-        if dolfinx.has_petsc_complex:
+        if np.issubdtype(PETSc.ScalarType, np.complexfloating):
             for name in ["Ediv_perp", "Ediv_z", "Ecurl_perp", "Ecurl_z"]:
                 attr = getattr(self.solution, name)
                 if attr is None:
@@ -34,7 +36,7 @@ class Esum():
         Vperp = dolfinx.FunctionSpace(self.mesh.mesh, Hcurl)
         Vz = dolfinx.FunctionSpace(self.mesh.mesh, H1)
 
-        if dolfinx.has_petsc_complex:
+        if np.issubdtype(PETSc.ScalarType, np.complexfloating):
             expr_list = [("Eperp", self.solution.Ediv_perp+self.solution.ecurl_perp, Vperp),
                          ("Ez", self.solution.Ediv_z+self.solution.ecurl_z, Vz)]
         else:
@@ -72,7 +74,7 @@ class Esum():
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Summing fields")
 
-        if dolfinx.has_petsc_complex:
+        if np.issubdtype(PETSc.ScalarType, np.complexfloating):
             names = ["Eperp", "Ez"]
         else:
             names = ["Eperp_re", "Eperp_im", "Ez_re", "Ez_im"]

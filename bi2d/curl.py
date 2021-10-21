@@ -107,7 +107,7 @@ class Ecurl():
         self.mesh = solution.mesh
         self.solution = solution
 
-        if dolfinx.has_petsc_complex:
+        if np.issubdtype(PETSc.ScalarType, np.complexfloating):
             for name in ["Js", "Ediv_perp", "Ediv_z"]:
                 attr = getattr(self.solution, name)
                 if attr is None:
@@ -134,7 +134,7 @@ class Ecurl():
         omega2_v2 = omega_v ** 2
         A = self.A
         B = self.B
-        if dolfinx.has_petsc_complex:
+        if np.issubdtype(PETSc.ScalarType, np.complexfloating):
             Z = self.Z_complex
             mu = self.material_map.mu
         else:
@@ -148,7 +148,7 @@ class Ecurl():
         self._a_p = 0
         self._L_p = 0
 
-        if dolfinx.has_petsc_complex:
+        if np.issubdtype(PETSc.ScalarType, np.complexfloating):
             V = dolfinx.FunctionSpace(self.mesh.mesh, ufl.MixedElement(self.solution.Hcurl,
                                                                        self.solution.H1))
 
@@ -565,7 +565,7 @@ class Ecurl():
             n = -ufl.FacetNormal(self.material_map.mesh.mesh)
             tau = ufl.as_vector((-n[1], n[0]))
             for ds, (k, _) in zip(sibc_measures, self._sibc_deltas):
-                if dolfinx.has_petsc_complex:
+                if np.issubdtype(PETSc.ScalarType, np.complexfloating):
                     r"""
                     1
                     $$B_{\perp\perp}
@@ -658,7 +658,7 @@ class Ecurl():
 
         self._Ecurl = dolfinx.Function(V)
 
-        if dolfinx.has_petsc_complex:
+        if np.issubdtype(PETSc.ScalarType, np.complexfloating):
             # FIXME: workaround for https://github.com/FEniCS/dolfinx/issues/1577
             (self.solution.Ecurl_perp,
              self.solution.Ecurl_z) = self._Ecurl.split()

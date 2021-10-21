@@ -35,7 +35,7 @@ class Ediv():
         # $$\frac{\omega^2 \varepsilon}{\beta c_0}$$
         omega2_eps_v = omega**2 * self.material_map.eps / v
 
-        if dolfinx.has_petsc_complex:
+        if np.issubdtype(PETSc.ScalarType, np.complexfloating):
             V = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.H1)
             phi, vv = ufl.TrialFunction(V), ufl.TestFunction(V)
 
@@ -91,7 +91,7 @@ class Ediv():
         u_bc.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
         self._bc = dolfinx.DirichletBC(u_bc, bc_dofs)
 
-        if dolfinx.has_petsc_complex:
+        if np.issubdtype(PETSc.ScalarType, np.complexfloating):
             self.solution.Phi = dolfinx.Function(V)
             self._phi = self.solution.Phi
 
@@ -143,7 +143,7 @@ class Ediv():
                              self._b_phi, self._phi, bcs=[self._bc],
                              petsc_options=petsc_options)
 
-        Efields = (["Ediv_perp", "Ediv_z"] if dolfinx.has_petsc_complex
+        Efields = (["Ediv_perp", "Ediv_z"] if np.issubdtype(PETSc.ScalarType, np.complexfloating)
                    else ["Ediv_perp_re", "Ediv_perp_im", "Ediv_z_re", "Ediv_z_im"])
 
         for name in Efields:

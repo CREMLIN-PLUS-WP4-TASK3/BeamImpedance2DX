@@ -141,7 +141,7 @@ class Solution():
     @property
     def z(self):
         """Get impedance."""
-        if dolfinx.has_petsc_complex:
+        if np.issubdtype(PETSc.ScalarType, np.complexfloating):
             for name in ["Js", "Ediv_perp", "Ediv_z", "Ecurl_perp", "Ecurl_z"]:
                 attr = getattr(self, name)
                 if attr is None:
@@ -161,7 +161,7 @@ class Solution():
                 if attr:
                     raise ValueError(f"{name} solutions are stale and need to be recalculated")
 
-        if dolfinx.has_petsc_complex:
+        if np.issubdtype(PETSc.ScalarType, np.complexfloating):
             E_z = self.Ediv_z + self.ecurl_z
             if self._monopole:
                 r"""
