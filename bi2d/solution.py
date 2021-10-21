@@ -16,7 +16,7 @@ from .curl import Ecurl
 class Solution():
     """This class holds solutions to Maxwell's equations."""
 
-    c0 = 299792458
+    c0 = PETSc.ScalarType(299792458)
 
     def __init__(self, material_map, H1_order=1, Hcurl_order=1):
         """Initialize."""
@@ -25,8 +25,8 @@ class Solution():
         self.material_map = material_map
         self.mesh = material_map.mesh
         # Scalar variables
-        self._omega = dolfinx.Constant(self.mesh.mesh, 2 * np.pi * self.material_map.f)
-        self._beta = dolfinx.Constant(self.mesh.mesh, 1)
+        self._omega = dolfinx.Constant(self.mesh.mesh, PETSc.ScalarType(2 * np.pi * self.material_map.f))
+        self._beta = dolfinx.Constant(self.mesh.mesh, PETSc.ScalarType(1))
         # FEM elements
         self.H1 = ufl.FiniteElement("Lagrange", material_map.mesh.mesh.ufl_cell(), H1_order)
         self.Hcurl = ufl.FiniteElement("Nedelec 1st kind H(curl)", material_map.mesh.mesh.ufl_cell(), Hcurl_order)
@@ -119,7 +119,7 @@ class Solution():
     def f(self, f):
         """Set frequency point."""
         if not np.isclose(self._omega.value, 2 * np.pi * f):
-            self._omega.value = 2 * np.pi * f
+            self._omega.value = PETSc.ScalarType(2 * np.pi * f)
             self.material_map.f = f
             self.material_map.update()
             for name in ["Ediv", "Ecurl", "E"]:
@@ -134,7 +134,7 @@ class Solution():
     def beta(self, beta):
         """Set beam particle speed."""
         if not np.isclose(self._beta.value, beta):
-            self._beta.value = beta
+            self._beta.value = PETSc.ScalarType(beta)
             for name in ["Ediv", "Ecurl", "E"]:
                 setattr(self, f"_{name}_stale", True)
 

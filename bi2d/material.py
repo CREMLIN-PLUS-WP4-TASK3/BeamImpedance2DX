@@ -59,8 +59,8 @@ mu=({self.mu_r_re} * mu0, {self.mu_im})]"""
 class MaterialMapBase():
     """Map material properties to mesh."""
 
-    eps0 = 8.8541878128e-12
-    mu0 = 4 * np.pi * 1e-7
+    eps0 = PETSc.ScalarType(8.8541878128e-12)
+    mu0 = PETSc.ScalarType(4 * np.pi * 1e-7)
 
     def __init__(self, mesh, materials, f=1e5, beam_subdomain_index=1):
         """Initialize."""
