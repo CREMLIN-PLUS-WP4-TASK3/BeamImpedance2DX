@@ -89,7 +89,6 @@ class Js():
 
     def __source_function_quadrupole_ring_linear(self, function_space, test_function):
         self.solution.source_function = SourceFunction.QUADRUPOLE
-        self.solution.source_function = SourceFunction.DIPOLE         # FIXME: remove
         (minx, miny), (maxx, maxy) = self.mesh.get_limits(self.material_map.beam_index)
         x0 = (minx + maxx) / 2
         y0 = (miny + maxy) / 2
@@ -165,6 +164,9 @@ class Js():
             A = np.sum(A)
         self.solution.dm = MPI.COMM_WORLD.bcast(A)
 
+    def __integral_function_quadrupole(self, function_space):
+        raise NotImplementedError("Not implemented")
+
     def __init__(self, solution, rotation=0, source_function=SourceFunction.MONOPOLE):
         """Initialize."""
         self.source_functions = {
@@ -177,7 +179,7 @@ class Js():
             SourceFunction.MONOPOLE_CONSTANT: self.__integral_function_monopole,
             SourceFunction.MONOPOLE_GAUSSIAN: self.__integral_function_monopole,
             SourceFunction.DIPOLE_RING_SIN: self.__integral_function_dipole,
-            SourceFunction.QUADRUPOLE_RING_SIN: self.__integral_function_dipole,  # FIXME: change to dipole
+            SourceFunction.QUADRUPOLE_RING_SIN: self.__integral_function_quadrupole,
         }
         self.solution = solution
         self.source_function = source_function
