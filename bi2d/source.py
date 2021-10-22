@@ -16,20 +16,22 @@ class SourceFunction(Enum):
     MONOPOLE_CONSTANT = 1
     MONOPOLE_GAUSSIAN = 2
     DIPOLE = 3
-    DIPOLE_RING_LINEAR = 3
+    DIPOLE_RING_SIN = 3
+    QUADRUPOLE = 4
+    QUADRUPOLE_RING_SIN = 4
 
 
 class Js():
     """Beam current."""
 
     def __source_function_monopole_constant(self, _, test_function):
-        self.solution._monopole = True
+        self.solution.source_function = SourceFunction.MONOPOLE
         (minx, _), (maxx, _) = self.mesh.get_limits(self.material_map.beam_index)
         area = np.pi * (maxx - minx)**2 / 4
         return inner(1 / area * self.material_map.beam, test_function) * dx
 
     def __source_function_monopole_gaussian(self, function_space, test_function):
-        self.solution._monopole = True
+        self.solution.source_function = SourceFunction.MONOPOLE
         (minx, miny), (maxx, maxy) = self.mesh.get_limits(self.material_map.beam_index)
         x0 = (minx + maxx) / 2
         y0 = (miny + maxy) / 2
@@ -40,7 +42,7 @@ class Js():
                                  - (x[1] - y0)**2 / (2 * sigma**2)), test_function) * dx
 
     def __source_function_dipole_ring_linear(self, function_space, test_function):
-        self.solution._monopole = False
+        self.solution.source_function = SourceFunction.DIPOLE
         (minx, miny), (maxx, maxy) = self.mesh.get_limits(self.material_map.beam_index)
         x0 = (minx + maxx) / 2
         y0 = (miny + maxy) / 2
@@ -81,15 +83,63 @@ class Js():
         A = dolfinx.fem.assemble_scalar(func * d * circle * dx)
         A = MPI.COMM_WORLD.gather(A)
         if MPI.COMM_WORLD.rank == 0:
-            A = np.abs(np.sum(np.abs(A)))
+            A = np.sum(A)
         A = MPI.COMM_WORLD.bcast(A)
+        return inner(func * circle / A, test_function) * dx
+
+    def __source_function_quadrupole_ring_linear(self, function_space, test_function):
+        self.solution.source_function = SourceFunction.QUADRUPOLE
+        self.solution.source_function = SourceFunction.DIPOLE         # FIXME: remove
+        (minx, miny), (maxx, maxy) = self.mesh.get_limits(self.material_map.beam_index)
+        x0 = (minx + maxx) / 2
+        y0 = (miny + maxy) / 2
+        R = (maxx - minx) / 2
+        # We are assuming DOFs located on triangle vertices. Thus, this function is only valid in linear H1 space.
+        V = dolfinx.FunctionSpace(self.mesh.mesh, ("Lagrange", 1))
+        circle = dolfinx.Function(V)
+        func = dolfinx.Function(function_space)
+        d = dolfinx.Function(function_space)
+        dofs = dolfinx.fem.locate_dofs_geometrical(
+            V,
+            lambda x: np.isclose((x[0] - x0)**2 + (x[1] - y0)**2, R**2)
+        )
+        if dofs.size == 0:
+            raise ValueError("Cannot set source function. No vertices on beam region boundary.")
+        with circle.vector.localForm() as loc:
+            loc.set(0)
+            loc.setValues(dofs, np.full(dofs.size, 1))
+
+        def sinfunc(arg):
+            x = np.real(arg[0])
+            y = np.real(arg[1])
+            theta = np.arctan2(x - x0, y - y0)
+            return np.sin(2 * theta + np.pi / 2 - self.rotation) / R
+
+        def dfunc(arg):
+            x = np.real(arg[0])
+            y = np.real(arg[1])
+            r = np.sqrt((x - x0)**2 + (y - y0)**2)
+            theta = np.arctan2(x - x0, y - y0)
+            return r * np.sin(2 * theta + np.pi / 2 - self.rotation)
+
+        func.interpolate(sinfunc)
+        func.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
+        d.interpolate(dfunc)
+        d.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
+
+        A = dolfinx.fem.assemble_scalar(func * d * circle * dx)
+        A = MPI.COMM_WORLD.gather(A)
+        if MPI.COMM_WORLD.rank == 0:
+            A = np.sum(A)
+        A = MPI.COMM_WORLD.bcast(A)
+        A = 1
         return inner(func * circle / A, test_function) * dx
 
     def __integral_function_monopole(self, _):
         q = dolfinx.fem.assemble_scalar(self.solution.Js * ufl.dx)
         q = MPI.COMM_WORLD.gather(q)
         if MPI.COMM_WORLD.rank == 0:
-            q = np.sum(np.abs(q))
+            q = np.sum(q)
         self.solution.q = MPI.COMM_WORLD.bcast(q)
 
     def __integral_function_dipole(self, function_space):
@@ -112,7 +162,7 @@ class Js():
         A = dolfinx.fem.assemble_scalar(d * self.solution.Js * dx)
         A = MPI.COMM_WORLD.gather(A)
         if MPI.COMM_WORLD.rank == 0:
-            A = np.abs(np.sum(A))
+            A = np.sum(A)
         self.solution.dm = MPI.COMM_WORLD.bcast(A)
 
     def __init__(self, solution, rotation=0, source_function=SourceFunction.MONOPOLE):
@@ -120,12 +170,14 @@ class Js():
         self.source_functions = {
             SourceFunction.MONOPOLE_CONSTANT: self.__source_function_monopole_constant,
             SourceFunction.MONOPOLE_GAUSSIAN: self.__source_function_monopole_gaussian,
-            SourceFunction.DIPOLE_RING_LINEAR: self.__source_function_dipole_ring_linear,
+            SourceFunction.DIPOLE_RING_SIN: self.__source_function_dipole_ring_linear,
+            SourceFunction.QUADRUPOLE_RING_SIN: self.__source_function_quadrupole_ring_linear,
         }
         self.integral_functions = {
             SourceFunction.MONOPOLE_CONSTANT: self.__integral_function_monopole,
             SourceFunction.MONOPOLE_GAUSSIAN: self.__integral_function_monopole,
-            SourceFunction.DIPOLE_RING_LINEAR: self.__integral_function_dipole,
+            SourceFunction.DIPOLE_RING_SIN: self.__integral_function_dipole,
+            SourceFunction.QUADRUPOLE_RING_SIN: self.__integral_function_dipole,  # FIXME: change to dipole
         }
         self.solution = solution
         self.source_function = source_function

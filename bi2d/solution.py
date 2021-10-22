@@ -64,7 +64,7 @@ class Solution():
         self._Ecurl_stale = True
         self._E_stale = True
         # Solution type flag
-        self._monopole = True
+        self.source_function = None
         # Monopole charge
         self.q = 0.0
         # Dipole moment
@@ -163,7 +163,7 @@ class Solution():
 
         if np.issubdtype(PETSc.ScalarType, np.complexfloating):
             E_z = self.Ediv_z + self.ecurl_z
-            if self._monopole:
+            if self.source_function == SourceFunction.MONOPOLE:
                 r"""
                 $$
                 \underline{Z}_\parallel(\omega)
@@ -174,7 +174,7 @@ class Solution():
                                                   ufl.inner(E_z, ufl.conj(self.Js)) * dx)
                 Zre = np.real(val)
                 Zim = np.imag(val)
-            else:
+            elif self.source_function == SourceFunction.DIPOLE:
                 r"""
                 $$
                 \underline{Z}_\perp(\omega)
@@ -186,10 +186,14 @@ class Solution():
                                                   ufl.inner(E_z, ufl.conj(self.Js)) * dx)
                 Zre = np.real(val)
                 Zim = np.imag(val)
+            elif self.source_function == SourceFunction.QUADRUPOLE:
+                raise NotImplementedError("Not implemented")
+            else:
+                raise AttributeError("Unknown source function")
         else:
             E_z_re = self.Ediv_z_re + self.ecurl_z_re
             E_z_im = self.Ediv_z_im + self.ecurl_z_im
-            if self._monopole:
+            if self.source_function == SourceFunction.MONOPOLE:
                 r"""
                 $$
                 \underline{Z}_\parallel(\omega)
@@ -203,7 +207,7 @@ class Solution():
                                                   ufl.inner(E_z_re, self.Js) * dx)
                 Zim = dolfinx.fem.assemble_scalar(-1 / self.q ** 2 *
                                                   ufl.inner(E_z_im, self.Js) * dx)
-            else:
+            elif self.source_function == SourceFunction.DIPOLE:
                 r"""
                 $$
                 \underline{Z}_\perp(\omega)
@@ -217,6 +221,10 @@ class Solution():
                                                   ufl.inner(E_z_re, self.Js) * dx)
                 Zim = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / self.dm**2 / self._omega *
                                                   ufl.inner(E_z_im, self.Js) * dx)
+            elif self.source_function == SourceFunction.QUADRUPOLE:
+                raise NotImplementedError("Not implemented")
+            else:
+                raise AttributeError("Unknown source function")
         _Zre = MPI.COMM_WORLD.gather(Zre)
         _Zim = MPI.COMM_WORLD.gather(Zim)
         if MPI.COMM_WORLD.rank == 0:
