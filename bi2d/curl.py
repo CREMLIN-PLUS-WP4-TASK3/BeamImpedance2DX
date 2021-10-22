@@ -44,7 +44,7 @@ class Ecurl():
             # assign SIBC to all boundaries
             measures = [ufl.ds]
             materials = [material for material in sibc if material.index == -1]
-            deltas = [dolfinx.Constant(self.mesh.mesh, 0)]
+            deltas = [dolfinx.Constant(self.mesh.mesh, PETSc.ScalarType(0))]
         else:
             if self.material_map.mesh.boundaries is None:
                 raise ValueError("Boundary data was not loaded")
@@ -56,7 +56,7 @@ class Ecurl():
                              subdomain_data=self.material_map.mesh.boundaries)
             measures = [ds(material.index) for material in sibc]
             materials = [material for material in sibc]
-            deltas = [dolfinx.Constant(self.mesh.mesh, 0) for _ in sibc]
+            deltas = [dolfinx.Constant(self.mesh.mesh, PETSc.ScalarType(0)) for _ in sibc]
         return measures, list(zip(deltas, materials))
 
     def __set_skin_depth_from_material(self, k, material, omega):
@@ -76,7 +76,7 @@ class Ecurl():
         =\sqrt{\frac{\omega\sigma}{2\mu_0}}
         $$
         """
-        k.value = np.sqrt((omega * sigma) / (2 * self.material_map.mu0))
+        k.value = PETSc.ScalarType(np.sqrt((omega * sigma) / (2 * self.material_map.mu0)))
 
     def A(self, scal):
         """Apply A operator."""
@@ -97,8 +97,8 @@ class Ecurl():
 
     def Z_complex(self, vec):
         """Apply Z operator."""
-        rx = 1j * self.solution._omega / (self.solution._beta * self.solution.c0) * vec[1]
-        ry = -1j * self.solution._omega / (self.solution._beta * self.solution.c0) * vec[0]
+        rx = PETSc.ScalarType(1j) * self.solution._omega / (self.solution._beta * self.solution.c0) * vec[1]
+        ry = PETSc.ScalarType(-1j) * self.solution._omega / (self.solution._beta * self.solution.c0) * vec[0]
         return ufl.as_vector((rx, ry))
 
     def __init__(self, solution, sibc=[]):
@@ -212,7 +212,7 @@ class Ecurl():
             J_s = -j\omega\int_\Omega{v J_s \;d\Omega}
             $$
             """
-            self._L_p += -1j * inner(omega * self.solution.Js, v) * dx
+            self._L_p += PETSc.ScalarType(-1j) * inner(omega * self.solution.Js, v) * dx
 
             r"""
             1
@@ -573,7 +573,7 @@ class Ecurl():
                     $$B_{\perp\perp}
                     =-\int_{\partial\Omega}{\left(\vec{w}\vec{\tau}\right)\left(\frac{1+j}{\delta\mu}\vec{E}_\perp\vec{\tau}\right)\;dS}$$
                     """
-                    self._a_p += -k * inner(dot((1 + 1j) * Eperp, tau), dot(w, tau)) * ds
+                    self._a_p += -k * PETSc.ScalarType(1 + 1j) * inner(dot(Eperp, tau), dot(w, tau)) * ds
 
                     r"""
                     4
@@ -582,7 +582,7 @@ class Ecurl():
                     =\int_{\partial\Omega}{v\frac{1+j}{\delta\mu}\underline{E}_z\;dS}
                     $$
                     """
-                    self._a_p += k * inner((1 + 1j) * Ez, v) * ds
+                    self._a_p += k * PETSc.ScalarType(1 + 1j) * inner(Ez, v) * ds
 
                 else:
                     r"""
