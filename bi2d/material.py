@@ -51,9 +51,9 @@ Should be a number or a function with signature [freq:float] -> val:float or \
     def __str__(self):
         """String representation."""
         return f"""Material({self.name})[index={self.index},\
-eps_r={self.eps_r},\
-sigma={self.sigma},\
-mu=({self.mu_r_re} * mu0, {self.mu_im})]"""
+eps_r={self.eps_r:.2e},\
+sigma={self.sigma:.2e},\
+mu=({self.mu_r_re:.2e}, {self.mu_r_im:.2e})]"""
 
 
 class MaterialMapBase():

@@ -21,6 +21,7 @@ class Ediv():
             raise AttributeError("Source function Js is not initialized")
 
         self.solution._Ediv_stale = True
+        self.solution._Ecurl_stale = True
 
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Setting poisson function")
@@ -120,20 +121,22 @@ class Ediv():
         self._bc = dolfinx.DirichletBC(u_bc, bc_dofs)
 
         if np.issubdtype(PETSc.ScalarType, np.complexfloating):
-            self.solution.Phi = dolfinx.Function(V)
-            self._phi = self.solution.Phi
+            if type(self.solution.Phi) != dolfinx.Function:
+                self.solution.Phi = dolfinx.Function(V)
+                self.solution._phi = self.solution.Phi
 
             Vperp = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.Hcurl)
             # Vperp = dolfinx.FunctionSpace(self.mesh.mesh, ufl.VectorElement(self.solution.H1, dim=2))
             Vz = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.H1)
 
-            loop_list = [("Ediv_perp", -grad(self._phi), Vperp),
-                         ("Ediv_z", 1j * omega / v * self._phi, Vz)]
+            loop_list = [("Ediv_perp", -grad(self.solution._phi), Vperp),
+                         ("Ediv_z", 1j * omega / v * self.solution._phi, Vz)]
         else:
-            self._phi = dolfinx.Function(V)
-            self.solution.Phi_re, self.solution.Phi_im = self._phi.split()
-            # FIXME: workaround for https://github.com/FEniCS/dolfinx/issues/1577
-            Phi_re, Phi_im = ufl.split(self._phi)
+            if type(self.solution.Phi) != dolfinx.Function:
+                self.solution._phi = dolfinx.Function(V)
+                self.solution.Phi_re, self.solution.Phi_im = self.solution._phi.split()
+                # FIXME: workaround for https://github.com/FEniCS/dolfinx/issues/1577
+                Phi_re, Phi_im = ufl.split(self.solution._phi)
 
             Vperp = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.Hcurl)
             # Vperp = dolfinx.FunctionSpace(self.mesh.mesh, ufl.VectorElement(self.solution.H1, dim=2))
@@ -154,7 +157,8 @@ class Ediv():
             setattr(self, f"_L_{name}", L_p)
             setattr(self, f"_A_{name}", A)
             setattr(self, f"_b_{name}", b)
-            setattr(self.solution, name, dolfinx.Function(V))
+            if type(getattr(self.solution, name)) != dolfinx.Function:
+                setattr(self.solution, name, dolfinx.Function(V))
 
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Set poisson function")
@@ -168,7 +172,7 @@ class Ediv():
             self.solution.logger.debug("Solving poisson function")
 
         self.solution._solve(self._a_phi, self._L_phi, self._A_phi,
-                             self._b_phi, self._phi, bcs=[self._bc],
+                             self._b_phi, self.solution._phi, bcs=[self._bc],
                              petsc_options=petsc_options)
 
         Efields = (["Ediv_perp", "Ediv_z"] if np.issubdtype(PETSc.ScalarType, np.complexfloating)

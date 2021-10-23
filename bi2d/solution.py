@@ -38,6 +38,7 @@ class Solution():
         self.solver_viewer = PETSc.Viewer()
         # Functions and function flags
         self.Js = None
+        self._phi = None
         self.Phi = None
         self.Phi_re = None
         self.Phi_im = None
@@ -47,6 +48,7 @@ class Solution():
         self.Ediv_z = None
         self.Ediv_z_re = None
         self.Ediv_z_im = None
+        self._Ecurl = None
         self.Ecurl_perp = None
         self.Ecurl_perp_re = None
         self.Ecurl_perp_im = None

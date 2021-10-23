@@ -55,7 +55,8 @@ class Esum():
             setattr(self, f"_L_{name}", L_p)
             setattr(self, f"_A_{name}", A)
             setattr(self, f"_b_{name}", b)
-            setattr(self.solution, name, dolfinx.Function(V))
+            if type(getattr(self.solution, name)) != dolfinx.Function:
+                setattr(self.solution, name, dolfinx.Function(V))
 
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Set field summator")

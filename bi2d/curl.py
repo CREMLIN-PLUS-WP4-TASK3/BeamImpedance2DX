@@ -658,24 +658,26 @@ class Ecurl():
         self._A = dolfinx.fem.create_matrix(self._a_p)
         self._b = dolfinx.fem.create_vector(self._L_p)
 
-        self._Ecurl = dolfinx.Function(V)
+        if type(self.solution.Ecurl_perp) != dolfinx.Function:
+            self.solution._Ecurl = dolfinx.Function(V)
 
-        if np.issubdtype(PETSc.ScalarType, np.complexfloating):
-            # FIXME: workaround for https://github.com/FEniCS/dolfinx/issues/1577
-            (self.solution.Ecurl_perp,
-             self.solution.Ecurl_z) = self._Ecurl.split()
-            (self.solution.ecurl_perp,
-             self.solution.ecurl_z) = ufl.split(self._Ecurl)
-        else:
-            # FIXME: workaround for https://github.com/FEniCS/dolfinx/issues/1577
-            (self.solution.Ecurl_perp_re,
-             self.solution.Ecurl_perp_im,
-             self.solution.Ecurl_z_re,
-             self.solution.Ecurl_z_im) = self._Ecurl.split()
-            (self.solution.ecurl_perp_re,
-             self.solution.ecurl_perp_im,
-             self.solution.ecurl_z_re,
-             self.solution.ecurl_z_im) = ufl.split(self._Ecurl)
+            if np.issubdtype(PETSc.ScalarType, np.complexfloating):
+                # FIXME: workaround for https://github.com/FEniCS/dolfinx/issues/1577
+                (self.solution.Ecurl_perp,
+                 self.solution.Ecurl_z) = self.solution._Ecurl.split()
+                (self.solution.ecurl_perp,
+                 self.solution.ecurl_z) = ufl.split(self.solution._Ecurl)
+            else:
+                # FIXME: workaround for https://github.com/FEniCS/dolfinx/issues/1577
+                self.solution._Ecurl = dolfinx.Function(V)
+                (self.solution.Ecurl_perp_re,
+                 self.solution.Ecurl_perp_im,
+                 self.solution.Ecurl_z_re,
+                 self.solution.Ecurl_z_im) = self.solution._Ecurl.split()
+                (self.solution.ecurl_perp_re,
+                 self.solution.ecurl_perp_im,
+                 self.solution.ecurl_z_re,
+                 self.solution.ecurl_z_im) = ufl.split(self.solution._Ecurl)
 
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Set curl function")
@@ -695,7 +697,7 @@ class Ecurl():
             self.__set_skin_depth_from_material(k, material, self.solution._omega.value)
 
         self.solution._solve(self._a_p, self._L_p, self._A,
-                             self._b, self._Ecurl, bcs=self._bcs,
+                             self._b, self.solution._Ecurl, bcs=self._bcs,
                              petsc_options=petsc_options)
 
         if MPI.COMM_WORLD.rank == 0:

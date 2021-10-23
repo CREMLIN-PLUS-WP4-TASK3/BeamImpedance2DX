@@ -66,14 +66,14 @@ class Js():
             x = np.real(arg[0])
             y = np.real(arg[1])
             theta = np.arctan2(x - x0, y - y0)
-            return np.sin(theta - self.rotation) / R
+            return np.sin(theta + self.rotation) / R
 
         def dfunc(arg):
             x = np.real(arg[0])
             y = np.real(arg[1])
             r = np.sqrt((x - x0)**2 + (y - y0)**2)
             theta = np.arctan2(x - x0, y - y0)
-            return r * np.sin(theta - self.rotation)
+            return r * np.sin(theta + self.rotation)
 
         func.interpolate(sinfunc)
         func.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
@@ -152,7 +152,7 @@ class Js():
             y = np.real(arg[1])
             r = np.sqrt((x - x0)**2 + (y - y0)**2)
             theta = np.arctan2(x - x0, y - y0)
-            return r * np.sin(theta - self.rotation)
+            return r * np.sin(theta + self.rotation)
 
         d.interpolate(dfunc)
         d.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
@@ -186,13 +186,16 @@ class Js():
         self.mesh = solution.mesh
         self.rotation = rotation
         self.solution._Js_stale = True
+        self.solution._Ediv_stale = True
+        self.solution._Ecurl_stale = True
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Setting source function")
         self._V = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.H1)
         u, v = ufl.TrialFunction(self._V), ufl.TestFunction(self._V)
         self._a_p = inner(u, v) * dx
         self._L_p = self.source_functions[self.source_function](self._V, v)
-        self.solution.Js = dolfinx.Function(self._V)
+        if type(self.solution.Js) != dolfinx.Function:
+            self.solution.Js = dolfinx.Function(self._V)
         self._A = dolfinx.fem.create_matrix(self._a_p)
         self._b = dolfinx.fem.create_vector(self._L_p)
 
