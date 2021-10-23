@@ -108,8 +108,6 @@ class Solution():
         self.solver.solve(b, f.vector)
         f.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
 
-        # dolfinx.fem.LinearProblem(a_p, L_p, bcs=bcs, u=f, petsc_options=petsc_options).solve()
-
     @property
     def f(self):
         """Get frequency point."""

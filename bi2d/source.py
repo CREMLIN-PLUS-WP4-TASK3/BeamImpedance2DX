@@ -131,7 +131,6 @@ class Js():
         if MPI.COMM_WORLD.rank == 0:
             A = np.sum(A)
         A = MPI.COMM_WORLD.bcast(A)
-        A = 1
         return inner(func * circle / A, test_function) * dx
 
     def __integral_function_monopole(self, _):
