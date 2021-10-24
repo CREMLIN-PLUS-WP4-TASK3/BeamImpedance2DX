@@ -11,6 +11,7 @@ from petsc4py import PETSc
 from .source import Js, SourceFunction
 from .poisson import Ediv
 from .curl import Ecurl
+from .esum import Esum
 
 
 class Solution():
@@ -71,12 +72,15 @@ class Solution():
         self.q = 0.0
         # Dipole moment
         self.dm = 0.0
-        # Attributes for self.get_z function
+        # get_z attributes
         self.__sibc_hash = None
-        self.__source = None
+        self.__source_hash = None
         self.__Js_solver = None
         self.__Ediv_solver = None
         self.__Ecurl_solver = None
+        # sum_fields attributes
+        self.__Esum_solver = None
+        self.__sum_order_hash = None
 
     def _set_solver_options(self, petsc_options={}):
         self.solver_options.prefixPush(self._solver_prefix)
@@ -240,10 +244,10 @@ class Solution():
               rotation=0, source_function=SourceFunction.MONOPOLE,
               petsc_options={"ksp_type": "preonly", "pc_type": "lu", "pc_factor_mat_solver_type": "mumps"}):
         """Get impedance. High level interface to the library functionality."""
-        if self.__Js_solver is None or self.__source != hash(tuple([source_function, rotation])):
+        if self.__Js_solver is None or self.__source_hash != hash((source_function, rotation)):
             self.__Js_solver = Js(self, rotation=rotation,
                                   source_function=source_function)
-            self.__source = hash(tuple([source_function, rotation]))
+            self.__source_hash = hash((source_function, rotation))
         if self.__Ediv_solver is None:
             self.__Ediv_solver = Ediv(self)
         if self.__Ecurl_solver is None or hash(tuple(sibc)) != self.__sibc_hash:
@@ -269,6 +273,16 @@ class Solution():
             output[i][2] = z_im
 
         return output
+
+    def sum_fields(self, H1_order=2, Hcurl_order=2,
+                   petsc_options={"ksp_type": "preonly", "pc_type": "lu", "pc_factor_mat_solver_type": "mumps"}):
+        """Sum irrotational and solenoidal fields. High level interface to the library functionality."""
+        if self.__Esum_solver is None or self.__sum_order_hash != hash((H1_order, Hcurl_order)):
+            self.__Esum_solver = Esum(self, H1_order=H1_order, Hcurl_order=Hcurl_order)
+            self.__sum_order_hash = hash((H1_order, Hcurl_order))
+
+        if self._E_stale:
+            self.__Esum_solver.solve(petsc_options=petsc_options)
 
     def save(self, field_file: str):
         """Save solution to XDMF file."""

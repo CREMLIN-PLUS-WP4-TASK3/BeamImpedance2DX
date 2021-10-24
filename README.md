@@ -194,12 +194,9 @@ Use `ParaView` to actually view the fields
 ```bash
 paraview solution.xdmf
 ```
-This file contains split irrotational and solenoidal field parts. You may create a sum of this parts using `Esum`
-object
+This file contains split irrotational and solenoidal field parts. You may create a sum of these parts using `sum_fields`
+function
 ```python
-from bi2d.esum import Esum
-
-esum = Esum(solution)
-esum.solve()
+solution.sum_fields()
 solution.save("solution.xdmf)"
 ```
