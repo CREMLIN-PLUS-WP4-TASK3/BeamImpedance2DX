@@ -32,8 +32,7 @@ if __name__ == "__main__":
 
     region = "triangle"
     if len(argv) == 4:
-        if argv[3].lower() == "line":
-            region = "line"
+        region = argv[3].lower()
 
     convert_msh(argv[1], argv[2],
                 cell_type=region)
