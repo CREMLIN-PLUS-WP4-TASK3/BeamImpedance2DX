@@ -278,6 +278,12 @@ class Solution():
                    petsc_options={"ksp_type": "preonly", "pc_type": "lu", "pc_factor_mat_solver_type": "mumps"}):
         """Sum irrotational and solenoidal fields. High level interface to the library functionality."""
         if self.__Esum_solver is None or self.__sum_order_hash != hash((H1_order, Hcurl_order)):
+            self.Eperp = None
+            self.Eperp_re = None
+            self.Eperp_im = None
+            self.Ez = None
+            self.Ez_re = None
+            self.Ez_im = None
             self.__Esum_solver = Esum(self, H1_order=H1_order, Hcurl_order=Hcurl_order)
             self.__sum_order_hash = hash((H1_order, Hcurl_order))
 
