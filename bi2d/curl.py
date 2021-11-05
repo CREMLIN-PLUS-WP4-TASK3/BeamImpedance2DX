@@ -91,14 +91,14 @@ class Ecurl():
 
     def Z_real(self, vec):
         """Apply Z operator."""
-        rx = self.solution._omega / (self.solution._beta * self.solution.c0) * vec[1]
-        ry = -self.solution._omega / (self.solution._beta * self.solution.c0) * vec[0]
+        rx = self.omega / (self.beta * self.c0) * vec[1]
+        ry = -self.omega / (self.beta * self.c0) * vec[0]
         return ufl.as_vector((rx, ry))
 
     def Z_complex(self, vec):
         """Apply Z operator."""
-        rx = PETSc.ScalarType(1j) * self.solution._omega / (self.solution._beta * self.solution.c0) * vec[1]
-        ry = PETSc.ScalarType(-1j) * self.solution._omega / (self.solution._beta * self.solution.c0) * vec[0]
+        rx = PETSc.ScalarType(1j) * self.omega / (self.beta * self.c0) * vec[1]
+        ry = PETSc.ScalarType(-1j) * self.omega / (self.beta * self.c0) * vec[0]
         return ufl.as_vector((rx, ry))
 
     def __init__(self, solution, sibc=[]):
@@ -128,10 +128,12 @@ class Ecurl():
             self.solution.logger.debug("Setting curl function")
 
         omega = self.solution._omega
-        # $$\frac{\omega}{\beta c_0}$$
-        omega_v = omega / (self.solution._beta * self.solution.c0)
-        # $$\frac{\omega^2}{\beta^2 c_0^2}$$
-        omega2_v2 = omega_v ** 2
+        self.omega = omega
+        beta = self.solution._beta
+        self.beta = beta
+        c0 = self.solution.c0
+        self.c0 = c0
+        eps = self.material_map.eps
         A = self.A
         B = self.B
         if np.issubdtype(PETSc.ScalarType, np.complexfloating):
@@ -142,8 +144,6 @@ class Ecurl():
             sigma = self.material_map.sigma
             nu_re = self.material_map.nu_re
             nu_im = self.material_map.nu_im
-        # $$\omega^2 \varepsilon_0 \varepsilon_r$$
-        omega2_eps = omega**2 * self.material_map.eps
 
         self._a_p = 0
         self._L_p = 0
@@ -163,7 +163,7 @@ class Ecurl():
             +\frac{\omega^2}{\beta^2 c_0^2}\int_\Omega{\vec{w}\frac{1}{\mu}\underline{\vec{E}}_\perp\;d\Omega}$$
             """
             self._a_p += inner(1 / mu * B(Eperp), B(w)) * dx
-            self._a_p += inner(omega2_v2 * 1 / mu * Eperp, w) * dx
+            self._a_p += inner(omega**2 / (beta * c0)**2 * 1 / mu * Eperp, w) * dx
 
             r"""
             2
@@ -196,7 +196,7 @@ class Ecurl():
             -\omega^2\int_{\Omega}{\vec{w}\underline{\varepsilon}\underline{\vec{E}}_\perp\;d\Omega}
             $$
             """
-            self._a_p += -inner(omega2_eps * Eperp, w) * dx
+            self._a_p += -inner(omega**2 * eps * Eperp, w) * dx
 
             r"""
             4
@@ -205,7 +205,7 @@ class Ecurl():
             -\omega^2\int_{\Omega}{v\underline{\varepsilon}\underline{E}_z\;d\Omega}
             $$
             """
-            self._a_p += -inner(omega2_eps * Ez, v) * dx
+            self._a_p += -inner(omega**2 * eps * Ez, v) * dx
 
             r"""
             $$
@@ -221,7 +221,7 @@ class Ecurl():
             \omega^2\int_{\Omega}{\vec{w}\underline{\varepsilon}\underline{\vec{E}}_\perp\;d\Omega}
             $$
             """
-            self._L_p += inner(omega2_eps * self.solution.Ediv_perp, w) * dx
+            self._L_p += inner(omega**2 * eps * self.solution.Ediv_perp, w) * dx
 
             r"""
             4
@@ -230,7 +230,7 @@ class Ecurl():
             \omega^2\int_{\Omega}{v\underline{\varepsilon}\underline{E}_z\;d\Omega}
             $$
             """
-            self._L_p += inner(omega2_eps * self.solution.Ediv_z, v) * dx
+            self._L_p += inner(omega**2 * eps * self.solution.Ediv_z, v) * dx
 
         else:
             V = dolfinx.FunctionSpace(self.mesh.mesh, ufl.MixedElement(self.solution.Hcurl,
@@ -251,7 +251,7 @@ class Ecurl():
             $$
             """
             self._a_p += inner(B(w_re), nu_re * B(Eperp_re)) * dx
-            self._a_p += inner(w_re, omega2_v2 * nu_re * Eperp_re) * dx
+            self._a_p += omega**2 / (beta * c0)**2 * inner(w_re, nu_re * Eperp_re) * dx
 
             r"""
             4
@@ -272,7 +272,7 @@ class Ecurl():
             $$
             """
             self._a_p += inner(B(w_im), nu_re * B(Eperp_im)) * dx
-            self._a_p += inner(w_im, omega2_v2 * nu_re * Eperp_im) * dx
+            self._a_p += omega**2 / (beta * c0)**2 * inner(w_im, nu_re * Eperp_im) * dx
 
             r"""
             7
@@ -330,7 +330,7 @@ class Ecurl():
             -\omega^2\int_{\Omega}{\vec{w}^\Re\varepsilon_0\varepsilon_r\vec{E}^\Re_\perp\;d\Omega}
             $$
             """
-            self._a_p += -inner(w_re, omega2_eps * Eperp_re) * dx
+            self._a_p += -omega**2 * inner(w_re, eps * Eperp_re) * dx
 
             r"""
             6
@@ -339,7 +339,7 @@ class Ecurl():
             -\omega^2\int_{\Omega}{\vec{w}^\Im\varepsilon_0\varepsilon_r\vec{E}^\Im_\perp\;d\Omega}
             $$
             """
-            self._a_p += -inner(w_im, omega2_eps * Eperp_im) * dx
+            self._a_p += -omega**2 * inner(w_im, eps * Eperp_im) * dx
 
             r"""
             11
@@ -348,7 +348,7 @@ class Ecurl():
             -\omega^2\int_{\Omega}{v^\Re\varepsilon_0\varepsilon_r E^\Re_z\;d\Omega}
             $$
             """
-            self._a_p += -inner(v_re, omega2_eps * Ez_re) * dx
+            self._a_p += -omega**2 * inner(v_re, eps * Ez_re) * dx
 
             r"""
             16
@@ -357,7 +357,7 @@ class Ecurl():
             -\omega^2\int_{\Omega}{v^\Im\varepsilon_0\varepsilon_r E^\Im_z\;d\Omega}
             $$
             """
-            self._a_p += -inner(v_im, omega2_eps * Ez_im) * dx
+            self._a_p += -omega**2 * inner(v_im, eps * Ez_im) * dx
 
             if nu_im is not None:
                 r"""
@@ -370,7 +370,7 @@ class Ecurl():
                 $$
                 """
                 self._a_p += -inner(B(w_re), nu_im * B(Eperp_im)) * dx
-                self._a_p += -omega2_v2 * inner(w_re, nu_im * Eperp_im) * dx
+                self._a_p += -omega**2 / (beta * c0)**2 * inner(w_re, nu_im * Eperp_im) * dx
 
                 r"""
                 3
@@ -391,7 +391,7 @@ class Ecurl():
                 $$
                 """
                 self._a_p += inner(B(w_im), nu_im * B(Eperp_re)) * dx
-                self._a_p += omega2_v2 * inner(w_im, nu_im * Eperp_re) * dx
+                self._a_p += omega**2 / (beta * c0)**2 * inner(w_im, nu_im * Eperp_re) * dx
 
                 r"""
                 8
@@ -443,8 +443,6 @@ class Ecurl():
                 self._a_p += inner(A(v_im), nu_im * A(Ez_re)) * dx
 
             if sigma is not None:
-                # $$\omega\sigma$$
-                omega_sigma = omega * sigma
 
                 r"""
                 2
@@ -453,7 +451,7 @@ class Ecurl():
                 -\omega\int_{\Omega}{\vec{w}^\Re\sigma\vec{E}^\Im_\perp\;d\Omega}
                 $$
                 """
-                self._a_p += -inner(w_re, omega_sigma * Eperp_im) * dx
+                self._a_p += -omega * inner(w_re, sigma * Eperp_im) * dx
 
                 r"""
                 5
@@ -462,7 +460,7 @@ class Ecurl():
                 \omega\int_{\Omega}{\vec{w}^\Im\sigma\vec{E}^\Re_\perp\;d\Omega}
                 $$
                 """
-                self._a_p += inner(w_im, omega_sigma * Eperp_re) * dx
+                self._a_p += omega * inner(w_im, sigma * Eperp_re) * dx
 
                 r"""
                 12
@@ -471,7 +469,7 @@ class Ecurl():
                 -\omega\int_{\Omega}{v^\Re\sigma E^\Im_z\;d\Omega}
                 $$
                 """
-                self._a_p += -inner(v_re, omega_sigma * Ez_im) * dx
+                self._a_p += -omega * inner(v_re, sigma * Ez_im) * dx
 
                 r"""
                 15
@@ -480,14 +478,14 @@ class Ecurl():
                 \omega\int_{\Omega}{v^\Im\sigma E^\Re_z\;d\Omega}
                 $$
                 """
-                self._a_p += inner(v_im, omega_sigma * Ez_re) * dx
+                self._a_p += omega * inner(v_im, sigma * Ez_re) * dx
 
             r"""
             $$
             J_s^\Im = -\omega\int_\Omega{v^\Im J_s \;d\Omega}
             $$
             """
-            self._L_p += -inner(v_im, omega * self.solution.Js) * dx
+            self._L_p += -omega * inner(v_im, self.solution.Js) * dx
 
             r"""
             1
@@ -496,7 +494,7 @@ class Ecurl():
             \omega^2\int_{\Omega}{\vec{w}^\Re\varepsilon_0\varepsilon_r\vec{E}^\Re_\perp\;d\Omega}
             $$
             """
-            self._L_p += inner(w_re, omega2_eps * self.solution.Ediv_perp_re) * dx
+            self._L_p += omega**2 * inner(w_re, eps * self.solution.Ediv_perp_re) * dx
 
             r"""
             6
@@ -505,7 +503,7 @@ class Ecurl():
             \omega^2\int_{\Omega}{\vec{w}^\Im\varepsilon_0\varepsilon_r\vec{E}^\Im_\perp\;d\Omega}
             $$
             """
-            self._L_p += inner(w_im, omega2_eps * self.solution.Ediv_perp_im) * dx
+            self._L_p += inner(w_im, omega**2 * eps * self.solution.Ediv_perp_im) * dx
 
             r"""
             11
@@ -514,7 +512,7 @@ class Ecurl():
             \omega^2\int_{\Omega}{v^\Re\varepsilon_0\varepsilon_r E^\Re_z\;d\Omega}
             $$
             """
-            self._L_p += inner(v_re, omega2_eps * self.solution.Ediv_z_re) * dx
+            self._L_p += omega**2 * inner(v_re, eps * self.solution.Ediv_z_re) * dx
 
             r"""
             16
@@ -523,7 +521,7 @@ class Ecurl():
             \omega^2\int_{\Omega}{v^\Im\varepsilon_0\varepsilon_r E^\Im_z\;d\Omega}
             $$
             """
-            self._L_p += inner(v_im, omega2_eps * self.solution.Ediv_z_im) * dx
+            self._L_p += omega**2 * inner(v_im, eps * self.solution.Ediv_z_im) * dx
 
             if sigma is not None:
                 r"""
@@ -533,7 +531,7 @@ class Ecurl():
                 \omega\int_{\Omega}{\vec{w}^\Re\sigma\vec{E}^\Im_\perp\;d\Omega}
                 $$
                 """
-                self._L_p += inner(w_re, omega_sigma * self.solution.Ediv_perp_im) * dx
+                self._L_p += omega * inner(w_re, sigma * self.solution.Ediv_perp_im) * dx
 
                 r"""
                 5
@@ -542,7 +540,7 @@ class Ecurl():
                 -\omega\int_{\Omega}{\vec{w}^\Im\sigma\vec{E}^\Re_\perp\;d\Omega}
                 $$
                 """
-                self._L_p += -inner(w_im, omega_sigma * self.solution.Ediv_perp_re) * dx
+                self._L_p += -omega * inner(w_im, sigma * self.solution.Ediv_perp_re) * dx
 
                 r"""
                 12
@@ -551,7 +549,7 @@ class Ecurl():
                 \omega\int_{\Omega}{v^\Re\sigma E^\Im_z\;d\Omega}
                 $$
                 """
-                self._L_p += inner(v_re, omega_sigma * self.solution.Ediv_z_im) * dx
+                self._L_p += omega * inner(v_re, sigma * self.solution.Ediv_z_im) * dx
 
                 r"""
                 15
@@ -560,7 +558,7 @@ class Ecurl():
                 -\omega\int_{\Omega}{v^\Im\sigma E^\Re_z\;d\Omega}
                 $$
                 """
-                self._L_p += -inner(v_im, omega_sigma * self.solution.Ediv_z_re) * dx
+                self._L_p += -omega * inner(v_im, sigma * self.solution.Ediv_z_re) * dx
 
         sibc_measures, self._sibc_deltas = self.__create_sibc_measures(sibc)
         if len(sibc_measures) > 0:

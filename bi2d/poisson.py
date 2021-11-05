@@ -30,20 +30,18 @@ class Ediv():
         self._L_phi = 0
 
         omega = self.solution._omega
-        v = self.solution._beta * self.solution.c0
-        # $$\varepsilon \beta c_0$$
-        eps_v = self.material_map.eps * v
-        # $$\frac{\omega^2 \varepsilon}{\beta c_0}$$
-        omega2_eps_v = omega**2 * self.material_map.eps / v
+        beta = self.solution._beta
+        c0 = self.solution.c0
+        eps = self.material_map.eps
 
         if np.issubdtype(PETSc.ScalarType, np.complexfloating):
             V = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.H1)
             phi, vv = ufl.TrialFunction(V), ufl.TestFunction(V)
 
             # $$\underline{\varepsilon}\beta c_0\int_\Omega{\nabla_\perp v \cdot \nabla_\perp\Phi \;d\Omega}$$
-            self._a_phi += eps_v * inner(grad(phi), grad(vv)) * dx
+            self._a_phi += eps * beta * c0 * inner(grad(phi), grad(vv)) * dx
             # $$\frac{\omega^2\underline{\varepsilon}}{\beta c_0}\int_\Omega{v\Phi \;d\Omega}$$
-            self._a_phi += omega2_eps_v * inner(phi, vv) * dx
+            self._a_phi += omega**2 * eps / (beta * c0) * inner(phi, vv) * dx
             # $$\int_\Omega{v J_s \;d\Omega}$$
             self._L_phi += inner(self.solution.Js, vv) * dx
 
@@ -55,56 +53,52 @@ class Ediv():
 
             r"""
             $$
-            \varepsilon_0 \varepsilon_r \beta c_0\int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Re \;d\Omega}
+            \varepsilon \beta c_0\int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Re \;d\Omega}
             $$
             """
-            self._a_phi += eps_v * inner(grad(v_re), grad(phi_re)) * dx
+            self._a_phi += eps * beta * c0 * inner(grad(v_re), grad(phi_re)) * dx
             r"""
             $$
-            \frac{\omega^2\varepsilon_0 \varepsilon_r}{\beta c_0}\int_\Omega{v^\Re\Phi^\Re \;d\Omega}
+            \frac{\omega^2\varepsilon}{\beta c_0}\int_\Omega{v^\Re\Phi^\Re \;d\Omega}
             $$
             """
-            self._a_phi += omega2_eps_v * inner(v_re, phi_re) * dx
+            self._a_phi += omega**2 * eps / (beta * c0) * inner(v_re, phi_re) * dx
             r"""
             $$
-            \varepsilon_0 \varepsilon_r \beta c_0\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Im \;d\Omega}
+            \varepsilon \beta c_0\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Im \;d\Omega}
             $$
             """
-            self._a_phi += eps_v * inner(grad(v_im), grad(phi_im)) * dx
+            self._a_phi += eps * beta * c0 * inner(grad(v_im), grad(phi_im)) * dx
             r"""
             $$
-            \frac{\omega^2\varepsilon_0 \varepsilon_r}{\beta c_0}\int_\Omega{v^\Im\Phi^\Im \;d\Omega}
+            \frac{\omega^2\varepsilon}{\beta c_0}\int_\Omega{v^\Im\Phi^\Im \;d\Omega}
             $$
             """
-            self._a_phi += omega2_eps_v * inner(v_im, phi_im) * dx
+            self._a_phi += omega**2 * eps / (beta * c0) * inner(v_im, phi_im) * dx
 
             if self.material_map.sigma is not None:
-                # $$\frac{\sigma \beta c_0}{\omega}$$
-                sigma_v_omega = self.material_map.sigma * v / omega
-
-                # $$\frac{\omega \sigma}{\beta c_0}$$
-                omega_sigma_v = omega * self.material_map.sigma / v
+                sigma = self.material_map.sigma
 
                 r"""
                 $$
                 \frac{\sigma \beta c_0}{\omega}\int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Im \;d\Omega}
                 $$
                 """
-                self._a_phi += sigma_v_omega * inner(grad(v_re), grad(phi_im)) * dx
+                self._a_phi += sigma * beta * c0 / omega * inner(grad(v_re), grad(phi_im)) * dx
                 r"""
                 $$
                 \frac{\omega\sigma}{\beta c_0}\int_\Omega{v^\Re\Phi^\Im \;d\Omega}
                 $$
                 """
-                self._a_phi += omega_sigma_v * inner(v_re, phi_im) * dx
+                self._a_phi += omega * sigma / (beta * c0) * inner(v_re, phi_im) * dx
                 r"""
                 $$
                 -\frac{\sigma \beta c_0}{\omega}\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Re \;d\Omega}
                 $$
                 """
-                self._a_phi += -sigma_v_omega * inner(grad(v_im), grad(phi_re)) * dx
+                self._a_phi += -sigma * beta * c0 / omega * inner(grad(v_im), grad(phi_re)) * dx
                 # $$-\frac{\omega\sigma}{\beta c_0}\int_\Omega{v^\Im\Phi^\Re \;d\Omega}$$
-                self._a_phi += -omega_sigma_v * inner(v_im, phi_re) * dx
+                self._a_phi += -omega * sigma / (beta * c0) * inner(v_im, phi_re) * dx
 
             # $$\int_\Omega{v^\Re J_s \;d\Omega}$$
             self._L_phi += inner(v_re, self.solution.Js) * dx
@@ -121,7 +115,7 @@ class Ediv():
         self._bc = dolfinx.DirichletBC(u_bc, bc_dofs)
 
         if np.issubdtype(PETSc.ScalarType, np.complexfloating):
-            if type(self.solution.Phi) != dolfinx.Function:
+            if type(self.solution._phi) != dolfinx.Function:
                 self.solution.Phi = dolfinx.Function(V)
                 self.solution._phi = self.solution.Phi
 
@@ -130,9 +124,9 @@ class Ediv():
             Vz = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.H1)
 
             loop_list = [("Ediv_perp", -grad(self.solution._phi), Vperp),
-                         ("Ediv_z", 1j * omega / v * self.solution._phi, Vz)]
+                         ("Ediv_z", 1j * omega / (beta * c0) * self.solution._phi, Vz)]
         else:
-            if type(self.solution.Phi) != dolfinx.Function:
+            if type(self.solution._phi) != dolfinx.Function:
                 self.solution._phi = dolfinx.Function(V)
                 self.solution.Phi_re, self.solution.Phi_im = self.solution._phi.split()
                 # FIXME: workaround for https://github.com/FEniCS/dolfinx/issues/1577
@@ -144,8 +138,8 @@ class Ediv():
 
             loop_list = [("Ediv_perp_re", -grad(Phi_re), Vperp),
                          ("Ediv_perp_im", -grad(Phi_im), Vperp),
-                         ("Ediv_z_re", -omega / v * Phi_im, Vz),
-                         ("Ediv_z_im", omega / v * Phi_re, Vz)]
+                         ("Ediv_z_re", -omega / (beta * c0) * Phi_im, Vz),
+                         ("Ediv_z_im", omega / (beta * c0) * Phi_re, Vz)]
 
         for name, expr, V in loop_list:
             u, v = ufl.TrialFunction(V), ufl.TestFunction(V)

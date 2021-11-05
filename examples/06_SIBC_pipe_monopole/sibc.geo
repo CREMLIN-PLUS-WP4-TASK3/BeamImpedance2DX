@@ -4,8 +4,8 @@ Mesh.Algorithm3D=1; // 1: Delaunay, 3: Initial mesh only, 4: Frontal, 7: MMG3D, 
 Mesh.Format=1; // 1: msh, 2: unv, 10: auto, 16: vtk, 19: vrml, 21: mail, 26: pos stat, 27: stl, 28: p3d, 30: mesh, 31: bdf, 32: cgns, 33: med, 34: diff, 38: ir3, 39: inp, 40: ply2, 41: celum, 42: su2, 47: tochnog, 49: neu, 50: matlab
 Mesh.RecombinationAlgorithm=1; // 0: simple, 1: blossom, 2: simple full-quad, 3: blossom full-quad
 
-d1 = 0.01;
-d2 = 0.04;
+d1 = 0.001;
+d2 = 0.01;
 dx1 = 0;
 dx2 = 0;
 dy1 = 0;
@@ -37,8 +37,8 @@ l40 = newl; Circle(l40) = {p40,p00,p10};
 ll10 = newll; Line loop(ll10) = {l10,l20,l30,l40};
 s10 = news; Surface(s10) = {ll10,ll1};
 
-Transfinite Curve{l1,l2,l3,l4} = 10;
-Transfinite Curve{l10,l20,l30,l40} = 250;
+Transfinite Curve{l1,l2,l3,l4} = 13;
+Transfinite Curve{l10,l20,l30,l40} = 270;
 
 Physical Surface(1) = {s1}; // beam
 Physical Surface(2) = {s10}; // vacuum
