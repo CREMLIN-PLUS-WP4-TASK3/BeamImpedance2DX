@@ -35,6 +35,6 @@ setup(
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"]
     ),
     include_package_data=True,
-    install_requires=["fenics-dolfinx>=0.3.1", "python_version>=3.6"],
+    # install_requires=["fenics-dolfinx>=0.3.1", "python_version>=3.6"],
     extras_require={"dev": ["check-manifest"]},
 )
