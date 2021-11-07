@@ -239,11 +239,14 @@ class Solution():
 
         return (Zre, Zim)
 
-    def get_z(self, f, beta=1.0,
-              sibc=[],
-              rotation=0, source_function=SourceFunction.MONOPOLE,
+    def get_z(self, f, beta=1.0, gamma=None, rotation=0, sibc=[],
+              source_function=SourceFunction.MONOPOLE,
               petsc_options={"ksp_type": "preonly", "pc_type": "lu", "pc_factor_mat_solver_type": "mumps"}):
         """Get impedance. High level interface to the library functionality."""
+        if (beta is None and gamma is None) or (beta is not None and gamma is not None):
+            raise AttributeError("Must supply either beta or gamma value")
+        elif gamma is not None:
+            beta = np.sqrt(1 - 1 / (gamma**2))
         if self.__Js_solver is None or self.__source_hash != hash((source_function, rotation)):
             self.__Js_solver = Js(self, rotation=rotation,
                                   source_function=source_function)
@@ -259,7 +262,7 @@ class Solution():
         output = np.zeros((f.size, 3))
         for i, f in enumerate(f):
             if MPI.COMM_WORLD.rank == 0:
-                self.logger.info(f"Solving for f={f:.2e}, β={beta:.2f}")
+                self.logger.info(f"Solving for f={f:.2e}, β={beta:.2f}, γ={1/np.sqrt(1-beta**2):.2f}")
             self.f = f
             if self._Js_stale:
                 self.__Js_solver.solve(petsc_options=petsc_options)

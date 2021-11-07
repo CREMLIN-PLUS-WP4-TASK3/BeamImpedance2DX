@@ -6,6 +6,11 @@ Mesh.RecombinationAlgorithm=1; // 0: simple, 1: blossom, 2: simple full-quad, 3:
 
 r1 = 0.01;
 r2 = 0.04;
+r3 = 0.005;
+dx1 = 0.025;
+dx2 = -0.025;
+dy1 = 0;
+dy2 = 0;
 
 Macro NewCircle
     // Input: newcircle_center - center point of a circle
@@ -29,6 +34,8 @@ Macro NewCircleTransfinite
 Return
 
 newcircle_center = newp; Point(newcircle_center) = {0,0,0};
+p0 = newcircle_center;
+
 newcircle_r = r1;
 newcircletransfinite = 80;
 Call NewCircle;
@@ -37,10 +44,31 @@ ll1 = newcircle_ll;
 s1 = news; Surface(s1) = {ll1};
 Physical Surface(1) = {s1}; // beam
 
-newcircle_r = r2;
-newcircletransfinite = 150;
+newcircle_center = newp; Point(newcircle_center) = {dx1,dy1,0};
+
+newcircle_r = r3;
+newcircletransfinite = 100;
 Call NewCircle;
 Call NewCircleTransfinite;
 ll2 = newcircle_ll;
-s2 = news; Surface(s2) = {ll2,ll1};
-Physical Surface(2) = {s2}; // vacuum
+Physical Curve(4) = {newcircle__l1,newcircle__l2,newcircle__l3,newcircle__l4}; // right tube
+
+newcircle_center = newp; Point(newcircle_center) = {dx2,dy2,0};
+
+newcircle_r = r3;
+newcircletransfinite = 100;
+Call NewCircle;
+Call NewCircleTransfinite;
+ll3 = newcircle_ll;
+Physical Curve(5) = {newcircle__l1,newcircle__l2,newcircle__l3,newcircle__l4}; // left tube
+
+newcircle_center = p0;
+
+newcircle_r = r2;
+newcircletransfinite = 300;
+Call NewCircle;
+Call NewCircleTransfinite;
+ll4 = newcircle_ll;
+s4 = news; Surface(s4) = {ll4,ll1,ll2,ll3};
+Physical Surface(2) = {s4}; // vacuum
+Physical Curve(3) = {newcircle__l1,newcircle__l2,newcircle__l3,newcircle__l4}; // external boundary

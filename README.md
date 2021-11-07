@@ -11,8 +11,14 @@ In order to generate calculation meshes and visualize the simulated electromagne
 [Gmsh](https://gmsh.info/) and [ParaView](https://www.paraview.org/).
 
 ## Jupyter server with real/complex numbers
+Build docker image by issuing the command
 ```bash
-docker run --init --rm --env OMP_NUM_THREADS=$(nproc) -p 8888:8888 -v "$(pwd)":/root/shared -w /root/shared dolfinx/lab
+docker build --tag bi2d -f bi2d_lab.dockerfile  .
+```
+
+Jupyter server may be started with the following line
+```bash
+docker run --init --rm --env OMP_NUM_THREADS=$(nproc) -p 8888:8888 -v "$(pwd)":/root/shared -w /root/shared bi2d
 ```
 
 Real and complex numbers can be selected in kernel selection box.

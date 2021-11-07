@@ -1,6 +1,7 @@
 a=0.001;
-mesh_beam = a/15;
-mesh = a/4;
+mesh_beam = a/10;
+mesh_jaw = a/4;
+mesh = a*2;
 
 DefineConstant[geomtype={0, Choices{0="sibc", 1="metal"}, Name"Geometry type"}];
 
@@ -18,18 +19,18 @@ Circle(4) = {5,1,2};
 Line Loop(1) = {1,2,3,4};
 Plane Surface(1) = {1};
 
-Point(30) = {-0.003,0.03,0,mesh};
+Point(30) = {-0.003,0.03,0,mesh_jaw};
 Point(31) = {-0.05,0.03,0,mesh};
 Point(32) = {-0.05,0.05,0,mesh};
 Point(33) = {0.05,0.05,0,mesh};
 Point(34) = {0.05,0.03,0,mesh};
-Point(35) = {0.003,0.03,0,mesh};
-Point(36) = {0.003,-0.03,0,mesh};
+Point(35) = {0.003,0.03,0,mesh_jaw};
+Point(36) = {0.003,-0.03,0,mesh_jaw};
 Point(37) = {0.05,-0.03,0,mesh};
 Point(38) = {0.05,-0.05,0,mesh};
 Point(39) = {-0.05,-0.05,0,mesh};
 Point(40) = {-0.05,-0.03,0,mesh};
-Point(41) = {-0.003,-0.03,0,mesh};
+Point(41) = {-0.003,-0.03,0,mesh_jaw};
 
 Line(30) = {30,31};
 Line(31) = {31,32};

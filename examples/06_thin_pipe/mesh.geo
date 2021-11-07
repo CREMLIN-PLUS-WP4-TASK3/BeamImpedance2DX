@@ -5,7 +5,11 @@ Mesh.Format=1; // 1: msh, 2: unv, 10: auto, 16: vtk, 19: vrml, 21: mail, 26: pos
 Mesh.RecombinationAlgorithm=1; // 0: simple, 1: blossom, 2: simple full-quad, 3: blossom full-quad
 
 r1 = 0.01;
-r2 = 0.04;
+r2 = 0.040;
+r3 = 0.0403;
+r4 = 0.1;
+
+DefineConstant[geomtype={0, Choices{0="sibc", 1="metal"}, Name"Geometry type"}];
 
 Macro NewCircle
     // Input: newcircle_center - center point of a circle
@@ -29,18 +33,60 @@ Macro NewCircleTransfinite
 Return
 
 newcircle_center = newp; Point(newcircle_center) = {0,0,0};
+
 newcircle_r = r1;
-newcircletransfinite = 80;
+newcircletransfinite = 160;
 Call NewCircle;
 Call NewCircleTransfinite;
 ll1 = newcircle_ll;
 s1 = news; Surface(s1) = {ll1};
 Physical Surface(1) = {s1}; // beam
 
+newcircle_r = r1+0.005;
+newcircletransfinite = 70;
+Call NewCircle;
+Call NewCircleTransfinite;
+ll1_2 = newcircle_ll;
+s1_2 = news; Surface(s1_2) = {ll1_2,ll1};
+
+newcircle_r = r2-0.005;
+newcircletransfinite = 400;
+Call NewCircle;
+Call NewCircleTransfinite;
+ll2_2 = newcircle_ll;
+s2_2 = news; Surface(s2_2) = {ll2_2,ll1_2};
+
 newcircle_r = r2;
-newcircletransfinite = 150;
+newcircletransfinite = 3000;
 Call NewCircle;
 Call NewCircleTransfinite;
 ll2 = newcircle_ll;
-s2 = news; Surface(s2) = {ll2,ll1};
-Physical Surface(2) = {s2}; // vacuum
+s2 = news; Surface(s2) = {ll2,ll2_2};
+Physical Surface(2) = {s2,s1_2,s2_2}; // inner vacuum
+
+If(geomtype)
+
+newcircle_r = r3;
+newcircletransfinite = 3000;
+Call NewCircle;
+Call NewCircleTransfinite;
+ll3 = newcircle_ll;
+s3 = news; Surface(s3) = {ll3,ll2};
+Physical Surface(3) = {s3}; // metal
+
+newcircle_r = r3+0.01;
+newcircletransfinite = 150;
+Call NewCircle;
+Call NewCircleTransfinite;
+ll3_2 = newcircle_ll;
+s3_2 = news; Surface(s3_2) = {ll3_2,ll3};
+
+newcircle_r = r4;
+newcircletransfinite = 100;
+Call NewCircle;
+Call NewCircleTransfinite;
+ll4 = newcircle_ll;
+s4 = news; Surface(s4) = {ll4,ll3_2};
+Physical Surface(4) = {s4,s3_2}; // outer vacuum
+
+EndIf
