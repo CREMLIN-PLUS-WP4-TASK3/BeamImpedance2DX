@@ -7,6 +7,6 @@ RUN apt-get update \
 	&& apt autoclean \
 	&& rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install git+https://gitlab.com/matsievskiysv/bi2d.git@dev \
+RUN pip3 install git+https://gitlab.com/matsievskiysv/bi2d.git@master \
     && wget https://gitlab.com/matsievskiysv/bi2d/-/raw/dev/tools/convert_msh.py -O /usr/bin/convert_msh.py \
     && chmod 555 /usr/bin/convert_msh.py

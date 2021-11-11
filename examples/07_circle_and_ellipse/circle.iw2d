@@ -2,13 +2,13 @@ Machine:	thin_pipe
 Relativistic Gamma:	707.10695794923
 Impedance Length in m:	1.
 Number of layers:	2
-Layer 1 inner radius in mm:	40.
+Layer 1 inner radius in mm:	10.
 Layer 1 DC resistivity (Ohm.m):	1e-6
 Layer 1 relaxation time for resistivity (ps):	0.0
 Layer 1 real part of dielectric constant:	1
 Layer 1 magnetic susceptibility:	0.0
 Layer 1 relaxation frequency of permeability (MHz):	Infinity
-Layer 1 thickness in mm:	0.3
+Layer 1 thickness in mm:	1.
 Layer 2 DC resistivity (Ohm.m):	Infinity
 Layer 2 relaxation time for resistivity (ps):	0.0
 Layer 2 real part of dielectric constant:	1
