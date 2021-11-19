@@ -62,7 +62,7 @@ class MaterialMapBase():
     eps0 = PETSc.ScalarType(8.8541878128e-12)
     mu0 = PETSc.ScalarType(4 * np.pi * 1e-7)
 
-    def __init__(self, mesh, materials, f=1e5, beam_subdomain_index=1):
+    def __init__(self, mesh, materials, f=1e5, beam_subdomain_index=1, round_check=True):
         """Initialize."""
         self.f = f
         self._f_previous = f
@@ -91,10 +91,10 @@ class MaterialMapBase():
             loc.setValues(cells, np.full(cells.size, 1))
 
         (minx, miny), (maxx, maxy) = self.mesh.get_limits(self.beam_index)
-        if not np.isclose(maxx - minx, maxy - miny):
-            raise ValueError(f"Beam subdomain {beam_subdomain_index} does not appear to be round")
-        if not self.mesh.check_round((minx + maxx) / 2, (miny + maxy) / 2, (maxx - minx) / 2, self.beam_index):
-            raise ValueError(f"Beam subdomain {beam_subdomain_index} does not appear to be round")
+        if round_check:
+            if not np.isclose(maxx - minx, maxy - miny, atol=(maxx - minx) / 200) or\
+               not self.mesh.check_round((minx + maxx) / 2, (miny + maxy) / 2, (maxx - minx) / 2, self.beam_index):
+                raise ValueError(f"Beam subdomain {beam_subdomain_index} does not appear to be round")
 
     def update_field(self, name):
         """Update material field map."""
@@ -153,9 +153,9 @@ class MaterialMapBase():
 class MaterialMapScalar(MaterialMapBase):
     """Map material properties to mesh."""
 
-    def __init__(self, mesh, materials, f=1e5, beam_subdomain_index=1):
+    def __init__(self, mesh, materials, f=1e5, beam_subdomain_index=1, round_check=True):
         """Initialize."""
-        super().__init__(mesh, materials, f, beam_subdomain_index)
+        super().__init__(mesh, materials, f, beam_subdomain_index, round_check=round_check)
         self._xdmf_write_all_list = ["beam", "eps_r", "eps", "sigma", "mu_r_re",
                                      "mu_r_im", "mu_re", "mu_im", "nu_re", "nu_im"]
 
@@ -238,11 +238,10 @@ class MaterialMapScalar(MaterialMapBase):
 class MaterialMapComplex(MaterialMapBase):
     """Map material properties to mesh."""
 
-    def __init__(self, mesh, materials, f=1e5, beam_subdomain_index=1):
+    def __init__(self, mesh, materials, f=1e5, beam_subdomain_index=1, round_check=True):
         """Initialize."""
-        super().__init__(mesh, materials, f, beam_subdomain_index)
-        self._xdmf_write_all_list = ["beam", "eps_r", "eps", "sigma", "mu_r_re",
-                                     "mu_r_im", "mu"]
+        super().__init__(mesh, materials, f, beam_subdomain_index, round_check=round_check)
+        self._xdmf_write_all_list = ["beam", "eps_r", "eps", "sigma", "mu_r_re", "mu_r_im", "mu"]
 
         for n in ["eps_r", "sigma", "mu_r_re", "mu_r_im"]:
             setattr(self, n, dolfinx.Function(self.V))

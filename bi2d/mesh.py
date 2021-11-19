@@ -17,6 +17,8 @@ class Mesh:
             #                                        self.mesh.topology.dim - 1)
             self.mesh.topology.create_connectivity(self.mesh.topology.dim - 1,
                                                    self.mesh.topology.dim)
+        if not np.all(self.mesh.geometry.x[:, 2] == 0):
+            raise ValueError("Mesh has non-zero z-axis points")
         self.boundaries = None
         if boundary_file is not None:
             with dolfinx.io.XDMFFile(MPI.COMM_WORLD, boundary_file, "r") as xdmf:
@@ -74,6 +76,6 @@ class Mesh:
             x = geometry_points[:, 0]
             y = geometry_points[:, 1]
             return np.all(np.logical_or((x - x0)**2 + (y - y0)**2 < R**2,
-                                        np.isclose((x - x0)**2 + (y - y0)**2, R**2)))
+                                        np.isclose((x - x0)**2 + (y - y0)**2, R**2, atol=R / 100)))
         else:
             return True
