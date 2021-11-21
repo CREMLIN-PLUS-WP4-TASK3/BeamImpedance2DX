@@ -10,6 +10,19 @@ from petsc4py import PETSc
 from mpi4py import MPI
 
 
+def simplify(expr):
+    if issubclass(type(expr), ufl.core.operator.Operator):
+        return PETSc.ScalarType(expr.__class__(*[simplify(e) for e in expr.ufl_operands]))
+    elif issubclass(type(expr), dolfinx.Constant):
+        return PETSc.ScalarType(expr.value)
+    elif issubclass(type(expr), ufl.constantvalue.ConstantValue):
+        return PETSc.ScalarType(expr)
+    elif type(expr) == PETSc.ScalarType:
+        return expr
+    else:
+        raise TypeError(f"Unsupported type {type(expr)}")
+
+
 class Ecurl():
     """Solenoidal electric field solver."""
 
@@ -136,6 +149,9 @@ class Ecurl():
         eps = self.material_map.eps
         A = self.A
         B = self.B
+        # TODO: experiment with different values and probably remove
+        RHS_mult = PETSc.ScalarType(1)
+        self.RHS_mult = RHS_mult
         if np.issubdtype(PETSc.ScalarType, np.complexfloating):
             Z = self.Z_complex
             mu = self.material_map.mu
@@ -212,7 +228,7 @@ class Ecurl():
             J_s = -j\omega\int_\Omega{v J_s \;d\Omega}
             $$
             """
-            self._L_p += PETSc.ScalarType(-1j) * inner(omega * self.solution.Js, v) * dx
+            self._L_p += RHS_mult * PETSc.ScalarType(-1j) * inner(omega * self.solution.Js, v) * dx
 
             r"""
             1
@@ -221,7 +237,7 @@ class Ecurl():
             \omega^2\int_{\Omega}{\vec{w}\underline{\varepsilon}\underline{\vec{E}}_\perp\;d\Omega}
             $$
             """
-            self._L_p += inner(omega**2 * eps * self.solution.Ediv_perp, w) * dx
+            self._L_p += RHS_mult * inner(omega**2 * eps * self.solution.Ediv_perp, w) * dx
 
             r"""
             4
@@ -230,7 +246,7 @@ class Ecurl():
             \omega^2\int_{\Omega}{v\underline{\varepsilon}\underline{E}_z\;d\Omega}
             $$
             """
-            self._L_p += inner(omega**2 * eps * self.solution.Ediv_z, v) * dx
+            self._L_p += RHS_mult * inner(omega**2 * eps * self.solution.Ediv_z, v) * dx
 
         else:
             V = dolfinx.FunctionSpace(self.mesh.mesh, ufl.MixedElement(self.solution.Hcurl,
@@ -485,7 +501,7 @@ class Ecurl():
             J_s^\Im = -\omega\int_\Omega{v^\Im J_s \;d\Omega}
             $$
             """
-            self._L_p += -omega * inner(v_im, self.solution.Js) * dx
+            self._L_p += -RHS_mult * omega * inner(v_im, self.solution.Js) * dx
 
             r"""
             1
@@ -494,7 +510,7 @@ class Ecurl():
             \omega^2\int_{\Omega}{\vec{w}^\Re\varepsilon_0\varepsilon_r\vec{E}^\Re_\perp\;d\Omega}
             $$
             """
-            self._L_p += omega**2 * inner(w_re, eps * self.solution.Ediv_perp_re) * dx
+            self._L_p += RHS_mult * omega**2 * inner(w_re, eps * self.solution.Ediv_perp_re) * dx
 
             r"""
             6
@@ -503,7 +519,7 @@ class Ecurl():
             \omega^2\int_{\Omega}{\vec{w}^\Im\varepsilon_0\varepsilon_r\vec{E}^\Im_\perp\;d\Omega}
             $$
             """
-            self._L_p += inner(w_im, omega**2 * eps * self.solution.Ediv_perp_im) * dx
+            self._L_p += RHS_mult * inner(w_im, omega**2 * eps * self.solution.Ediv_perp_im) * dx
 
             r"""
             11
@@ -512,7 +528,7 @@ class Ecurl():
             \omega^2\int_{\Omega}{v^\Re\varepsilon_0\varepsilon_r E^\Re_z\;d\Omega}
             $$
             """
-            self._L_p += omega**2 * inner(v_re, eps * self.solution.Ediv_z_re) * dx
+            self._L_p += RHS_mult * omega**2 * inner(v_re, eps * self.solution.Ediv_z_re) * dx
 
             r"""
             16
@@ -521,7 +537,7 @@ class Ecurl():
             \omega^2\int_{\Omega}{v^\Im\varepsilon_0\varepsilon_r E^\Im_z\;d\Omega}
             $$
             """
-            self._L_p += omega**2 * inner(v_im, eps * self.solution.Ediv_z_im) * dx
+            self._L_p += RHS_mult * omega**2 * inner(v_im, eps * self.solution.Ediv_z_im) * dx
 
             if sigma is not None:
                 r"""
@@ -531,7 +547,7 @@ class Ecurl():
                 \omega\int_{\Omega}{\vec{w}^\Re\sigma\vec{E}^\Im_\perp\;d\Omega}
                 $$
                 """
-                self._L_p += omega * inner(w_re, sigma * self.solution.Ediv_perp_im) * dx
+                self._L_p += RHS_mult * omega * inner(w_re, sigma * self.solution.Ediv_perp_im) * dx
 
                 r"""
                 5
@@ -540,7 +556,7 @@ class Ecurl():
                 -\omega\int_{\Omega}{\vec{w}^\Im\sigma\vec{E}^\Re_\perp\;d\Omega}
                 $$
                 """
-                self._L_p += -omega * inner(w_im, sigma * self.solution.Ediv_perp_re) * dx
+                self._L_p += -RHS_mult * omega * inner(w_im, sigma * self.solution.Ediv_perp_re) * dx
 
                 r"""
                 12
@@ -549,7 +565,7 @@ class Ecurl():
                 \omega\int_{\Omega}{v^\Re\sigma E^\Im_z\;d\Omega}
                 $$
                 """
-                self._L_p += omega * inner(v_re, sigma * self.solution.Ediv_z_im) * dx
+                self._L_p += RHS_mult * omega * inner(v_re, sigma * self.solution.Ediv_z_im) * dx
 
                 r"""
                 15
@@ -558,7 +574,7 @@ class Ecurl():
                 -\omega\int_{\Omega}{v^\Im\sigma E^\Re_z\;d\Omega}
                 $$
                 """
-                self._L_p += -omega * inner(v_im, sigma * self.solution.Ediv_z_re) * dx
+                self._L_p += -RHS_mult * omega * inner(v_im, sigma * self.solution.Ediv_z_re) * dx
 
         sibc_measures, self._sibc_deltas = self.__create_sibc_measures(sibc)
         if len(sibc_measures) > 0:
@@ -697,6 +713,7 @@ class Ecurl():
         self.solution._solve(self._a_p, self._L_p, self._A,
                              self._b, self.solution._Ecurl, bcs=self._bcs,
                              petsc_options=petsc_options)
+        self.solution._Ecurl.x.array[:] /= simplify(self.RHS_mult)
 
         if MPI.COMM_WORLD.rank == 0:
             self.solution.logger.debug("Solved curl function")

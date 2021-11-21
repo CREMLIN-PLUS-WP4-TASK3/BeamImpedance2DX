@@ -34,16 +34,20 @@ class Ediv():
         c0 = self.solution.c0
         eps = self.material_map.eps
 
+        # TODO: find out which one is more stable, remove other
         if np.issubdtype(PETSc.ScalarType, np.complexfloating):
             V = dolfinx.FunctionSpace(self.mesh.mesh, self.solution.H1)
             phi, vv = ufl.TrialFunction(V), ufl.TestFunction(V)
 
-            # $$\underline{\varepsilon}\beta c_0\int_\Omega{\nabla_\perp v \cdot \nabla_\perp\Phi \;d\Omega}$$
-            self._a_phi += eps * beta * c0 * inner(grad(phi), grad(vv)) * dx
-            # $$\frac{\omega^2\underline{\varepsilon}}{\beta c_0}\int_\Omega{v\Phi \;d\Omega}$$
-            self._a_phi += omega**2 * eps / (beta * c0) * inner(phi, vv) * dx
-            # $$\int_\Omega{v J_s \;d\Omega}$$
-            self._L_phi += inner(self.solution.Js, vv) * dx
+            # $$\underline{\varepsilon}\int_\Omega{\nabla_\perp v \cdot \nabla_\perp\Phi \;d\Omega}$$
+            # self._a_phi += eps * (beta * c0) * inner(grad(phi), grad(vv)) * dx
+            self._a_phi += eps * inner(grad(phi), grad(vv)) * dx
+            # $$\frac{\omega^2\underline{\varepsilon}}{\beta^2 c_0^2}\int_\Omega{v\Phi \;d\Omega}$$
+            # self._a_phi += omega**2 * eps / (beta * c0) * inner(phi, vv) * dx
+            self._a_phi += omega**2 * eps / (beta * c0)**2 * inner(phi, vv) * dx
+            # $$\frac{1}{\beta c_0}\int_\Omega{v J_s \;d\Omega}$$
+            # self._L_phi += inner(self.solution.Js, vv) * dx
+            self._L_phi += PETSc.ScalarType(1) / (beta * c0) * inner(self.solution.Js, vv) * dx
 
         else:
             V = dolfinx.FunctionSpace(self.mesh.mesh, ufl.MixedElement(self.solution.H1,
@@ -53,55 +57,55 @@ class Ediv():
 
             r"""
             $$
-            \varepsilon \beta c_0\int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Re \;d\Omega}
+            \varepsilon \int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Re \;d\Omega}
             $$
             """
-            self._a_phi += eps * beta * c0 * inner(grad(v_re), grad(phi_re)) * dx
+            self._a_phi += eps * inner(grad(v_re), grad(phi_re)) * dx
             r"""
             $$
-            \frac{\omega^2\varepsilon}{\beta c_0}\int_\Omega{v^\Re\Phi^\Re \;d\Omega}
+            \frac{\omega^2\varepsilon}{\beta^2 c_0^2}\int_\Omega{v^\Re\Phi^\Re \;d\Omega}
             $$
             """
-            self._a_phi += omega**2 * eps / (beta * c0) * inner(v_re, phi_re) * dx
+            self._a_phi += omega**2 * eps / (beta * c0)**2 * inner(v_re, phi_re) * dx
             r"""
             $$
-            \varepsilon \beta c_0\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Im \;d\Omega}
+            \varepsilon \int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Im \;d\Omega}
             $$
             """
-            self._a_phi += eps * beta * c0 * inner(grad(v_im), grad(phi_im)) * dx
+            self._a_phi += eps * inner(grad(v_im), grad(phi_im)) * dx
             r"""
             $$
-            \frac{\omega^2\varepsilon}{\beta c_0}\int_\Omega{v^\Im\Phi^\Im \;d\Omega}
+            \frac{\omega^2\varepsilon}{\beta^2 c_0^2}\int_\Omega{v^\Im\Phi^\Im \;d\Omega}
             $$
             """
-            self._a_phi += omega**2 * eps / (beta * c0) * inner(v_im, phi_im) * dx
+            self._a_phi += omega**2 * eps / (beta * c0)**2 * inner(v_im, phi_im) * dx
 
             if self.material_map.sigma is not None:
                 sigma = self.material_map.sigma
 
                 r"""
                 $$
-                \frac{\sigma \beta c_0}{\omega}\int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Im \;d\Omega}
+                \frac{\sigma}{\omega}\int_\Omega{\nabla_\perp v^\Re \cdot \nabla_\perp\Phi^\Im \;d\Omega}
                 $$
                 """
-                self._a_phi += sigma * beta * c0 / omega * inner(grad(v_re), grad(phi_im)) * dx
+                self._a_phi += sigma / omega * inner(grad(v_re), grad(phi_im)) * dx
                 r"""
                 $$
-                \frac{\omega\sigma}{\beta c_0}\int_\Omega{v^\Re\Phi^\Im \;d\Omega}
+                \frac{\omega\sigma}{\beta^2 c_0^2}\int_\Omega{v^\Re\Phi^\Im \;d\Omega}
                 $$
                 """
-                self._a_phi += omega * sigma / (beta * c0) * inner(v_re, phi_im) * dx
+                self._a_phi += omega * sigma / (beta * c0)**2 * inner(v_re, phi_im) * dx
                 r"""
                 $$
-                -\frac{\sigma \beta c_0}{\omega}\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Re \;d\Omega}
+                -\frac{\sigma}{\omega}\int_\Omega{\nabla_\perp v^\Im \cdot \nabla_\perp\Phi^\Re \;d\Omega}
                 $$
                 """
-                self._a_phi += -sigma * beta * c0 / omega * inner(grad(v_im), grad(phi_re)) * dx
-                # $$-\frac{\omega\sigma}{\beta c_0}\int_\Omega{v^\Im\Phi^\Re \;d\Omega}$$
-                self._a_phi += -omega * sigma / (beta * c0) * inner(v_im, phi_re) * dx
+                self._a_phi += -sigma / omega * inner(grad(v_im), grad(phi_re)) * dx
+                # $$-\frac{\omega\sigma}{\beta^2 c_0^2}\int_\Omega{v^\Im\Phi^\Re \;d\Omega}$$
+                self._a_phi += -omega * sigma / (beta * c0)**2 * inner(v_im, phi_re) * dx
 
-            # $$\int_\Omega{v^\Re J_s \;d\Omega}$$
-            self._L_phi += inner(v_re, self.solution.Js) * dx
+            # $$\frac{1}{\beta c_0}\int_\Omega{v^\Re J_s \;d\Omega}$$
+            self._L_phi += PETSc.ScalarType(1) / (beta * c0) * inner(v_re, self.solution.Js) * dx
 
         self._A_phi = dolfinx.fem.create_matrix(self._a_phi)
         self._b_phi = dolfinx.fem.create_vector(self._L_phi)

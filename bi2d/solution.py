@@ -19,9 +19,9 @@ class Solution():
 
     c0 = PETSc.ScalarType(299792458)
 
-    def __init__(self, material_map, H1_order=1, Hcurl_order=1):
+    def __init__(self, material_map, H1_order=1, Hcurl_order=1, logger_name=None):
         """Initialize."""
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(logger_name if logger_name is not None else f"{__name__}_{id(self)}")
         # Mesh and materials
         self.material_map = material_map
         self.mesh = material_map.mesh
@@ -251,8 +251,10 @@ class Solution():
             self.__Js_solver = Js(self, rotation=rotation,
                                   source_function=source_function)
             self.__source_hash = hash((source_function, rotation))
+            self.__Ediv_solver = None
         if self.__Ediv_solver is None:
             self.__Ediv_solver = Ediv(self)
+            self.__Ecurl_solver = None
         if self.__Ecurl_solver is None or hash(tuple(sibc)) != self.__sibc_hash:
             self.__Ecurl_solver = Ecurl(self, sibc=sibc)
             self.__sibc_hash = hash(tuple(sibc))
