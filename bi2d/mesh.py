@@ -56,14 +56,13 @@ class Mesh:
             maxx = np.nan
             miny = np.nan
             maxy = np.nan
-        values = MPI.COMM_WORLD.gather(np.array([minx, miny, maxx, maxy]))
+        values = MPI.COMM_WORLD.gather([minx, miny, maxx, maxy])
         if MPI.COMM_WORLD.rank == 0:
-            values = [v for v in values if np.all(~np.isnan(v))]
             values = np.vstack(values)
-            minx = np.min(values[:, 0])
-            miny = np.min(values[:, 1])
-            maxx = np.max(values[:, 2])
-            maxy = np.max(values[:, 3])
+            minx = np.nanmin(values[:, 0])
+            miny = np.nanmin(values[:, 1])
+            maxx = np.nanmax(values[:, 2])
+            maxy = np.nanmax(values[:, 3])
         return MPI.COMM_WORLD.bcast(((minx, miny), (maxx, maxy)), root=0)
 
     def check_round(self, x0, y0, R, index):

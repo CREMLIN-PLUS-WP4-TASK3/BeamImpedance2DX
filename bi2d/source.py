@@ -35,7 +35,7 @@ class Js():
         (minx, miny), (maxx, maxy) = self.mesh.get_limits(self.material_map.beam_index)
         x0 = (minx + maxx) / 2
         y0 = (miny + maxy) / 2
-        sigma = (maxx - minx) / 2 / 2
+        sigma = (maxx - minx) / 4
         x = ufl.SpatialCoordinate(function_space)
         A = 1 / (2 * np.pi * sigma**2)
         return inner(A * ufl.exp(- (x[0] - x0)**2 / (2 * sigma**2)
@@ -56,7 +56,7 @@ class Js():
             V,
             lambda x: np.isclose((x[0] - x0)**2 + (x[1] - y0)**2, R**2)
         )
-        if dofs.size == 0:
+        if MPI.COMM_WORLD.allreduce(dofs.size) == 0:
             raise ValueError("Cannot set source function. No vertices on beam region boundary.")
         with circle.vector.localForm() as loc:
             loc.set(0)
@@ -65,15 +65,15 @@ class Js():
         def sinfunc(arg):
             x = np.real(arg[0])
             y = np.real(arg[1])
-            theta = np.arctan2(x - x0, y - y0)
-            return np.sin(theta + self.rotation) / R
+            theta = np.arctan2(y - y0, x - x0)
+            return np.cos(theta - self.rotation) / R
 
         def dfunc(arg):
             x = np.real(arg[0])
             y = np.real(arg[1])
             r = np.sqrt((x - x0)**2 + (y - y0)**2)
-            theta = np.arctan2(x - x0, y - y0)
-            return r * np.sin(theta + self.rotation)
+            theta = np.arctan2(y - y0, x - x0)
+            return r * np.cos(theta - self.rotation)
 
         func.interpolate(sinfunc)
         func.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
@@ -81,10 +81,7 @@ class Js():
         d.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
 
         A = dolfinx.fem.assemble_scalar(func * d * circle * dx)
-        A = MPI.COMM_WORLD.gather(A)
-        if MPI.COMM_WORLD.rank == 0:
-            A = np.sum(A)
-        A = MPI.COMM_WORLD.bcast(A)
+        A = MPI.COMM_WORLD.allreduce(A)
         return inner(func * circle / A, test_function) * dx
 
     def __source_function_quadrupole_ring_linear(self, function_space, test_function):
@@ -102,7 +99,7 @@ class Js():
             V,
             lambda x: np.isclose((x[0] - x0)**2 + (x[1] - y0)**2, R**2)
         )
-        if dofs.size == 0:
+        if MPI.COMM_WORLD.allreduce(dofs.size) == 0:
             raise ValueError("Cannot set source function. No vertices on beam region boundary.")
         with circle.vector.localForm() as loc:
             loc.set(0)
@@ -111,15 +108,16 @@ class Js():
         def sinfunc(arg):
             x = np.real(arg[0])
             y = np.real(arg[1])
-            theta = np.arctan2(x - x0, y - y0)
-            return np.sin(2 * theta + np.pi / 2 - self.rotation) / R
+            theta = np.arctan2(y - y0, x - x0)
+            return np.cos(2 * theta - self.rotation) / R
 
         def dfunc(arg):
             x = np.real(arg[0])
             y = np.real(arg[1])
             r = np.sqrt((x - x0)**2 + (y - y0)**2)
-            theta = np.arctan2(x - x0, y - y0)
-            return r * np.sin(2 * theta + np.pi / 2 - self.rotation)
+            theta = np.arctan2(y - y0, x - x0)
+            return 3 * r**2 * np.cos(theta + np.pi / 4 - self.rotation) \
+                * np.sin(theta + np.pi / 4 - self.rotation)
 
         func.interpolate(sinfunc)
         func.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
@@ -127,20 +125,16 @@ class Js():
         d.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
 
         A = dolfinx.fem.assemble_scalar(func * d * circle * dx)
-        A = MPI.COMM_WORLD.gather(A)
-        if MPI.COMM_WORLD.rank == 0:
-            A = np.sum(A)
-        A = MPI.COMM_WORLD.bcast(A)
+        A = MPI.COMM_WORLD.allreduce(A)
         return inner(func * circle / A, test_function) * dx
 
     def __integral_function_monopole(self, _):
+        # $q_{tot} = \displaystyle\sum_{i=1}^{N}{q_i}$
         q = dolfinx.fem.assemble_scalar(self.solution.Js * ufl.dx)
-        q = MPI.COMM_WORLD.gather(q)
-        if MPI.COMM_WORLD.rank == 0:
-            q = np.sum(q)
-        self.solution.q = MPI.COMM_WORLD.bcast(q)
+        self.solution.q = MPI.COMM_WORLD.allreduce(q)
 
     def __integral_function_dipole(self, function_space):
+        # $P_{\alpha} = \displaystyle\sum_{i=1}^{N}{q_i r_{i\alpha}}$
         (minx, miny), (maxx, maxy) = self.mesh.get_limits(self.material_map.beam_index)
         x0 = (minx + maxx) / 2
         y0 = (miny + maxy) / 2
@@ -151,20 +145,36 @@ class Js():
             x = np.real(arg[0])
             y = np.real(arg[1])
             r = np.sqrt((x - x0)**2 + (y - y0)**2)
-            theta = np.arctan2(x - x0, y - y0)
-            return r * np.sin(theta + self.rotation)
+            theta = np.arctan2(y - y0, x - x0)
+            return r * np.cos(theta - self.rotation)
 
         d.interpolate(dfunc)
         d.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
 
         A = dolfinx.fem.assemble_scalar(d * self.solution.Js * dx)
-        A = MPI.COMM_WORLD.gather(A)
-        if MPI.COMM_WORLD.rank == 0:
-            A = np.sum(A)
-        self.solution.dm = MPI.COMM_WORLD.bcast(A)
+        self.solution.dm = MPI.COMM_WORLD.allreduce(A)
 
     def __integral_function_quadrupole(self, function_space):
-        raise NotImplementedError("Not implemented")
+        # $$Q_{xy} = \displaystyle\sum_{i=1}^{N}{q_i \left(3r_{i x}r_{i y}\right)}$$
+        (minx, miny), (maxx, maxy) = self.mesh.get_limits(self.material_map.beam_index)
+        x0 = (minx + maxx) / 2
+        y0 = (miny + maxy) / 2
+
+        d = dolfinx.Function(function_space)
+
+        def dfunc(arg):
+            x = np.real(arg[0])
+            y = np.real(arg[1])
+            r = np.sqrt((x - x0)**2 + (y - y0)**2)
+            theta = np.arctan2(y - y0, x - x0)
+            return 3 * r**2 * np.cos(theta + np.pi / 4 - self.rotation) \
+                * np.sin(theta + np.pi / 4 - self.rotation)
+
+        d.interpolate(dfunc)
+        d.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
+
+        A = dolfinx.fem.assemble_scalar(d * self.solution.Js * dx)
+        self.solution.qm = MPI.COMM_WORLD.allreduce(A)
 
     def __init__(self, solution, rotation=0, source_function=SourceFunction.MONOPOLE):
         """Initialize."""

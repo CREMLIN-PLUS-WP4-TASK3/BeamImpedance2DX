@@ -41,14 +41,11 @@ class Ecurl():
                                                        self.mesh.get_boundary(bc.index))
             bc_dofs = np.setdiff1d(bc_dofs, dofs)
 
-        if bc_dofs.size == 0:
-            return []
-        else:
-            u_bc = dolfinx.Function(V)
-            with u_bc.vector.localForm() as loc:
-                loc.setValues(bc_dofs, np.full(bc_dofs.size, 0))
-            u_bc.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
-            return [dolfinx.DirichletBC(u_bc, bc_dofs)]
+        u_bc = dolfinx.Function(V)
+        with u_bc.vector.localForm() as loc:
+            loc.setValues(bc_dofs, np.full(bc_dofs.size, 0))
+        u_bc.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
+        return [dolfinx.DirichletBC(u_bc, bc_dofs)]
 
     def __create_sibc_measures(self, sibc):
         if len(sibc) == 0:
@@ -62,7 +59,8 @@ class Ecurl():
             if self.material_map.mesh.boundaries is None:
                 raise ValueError("Boundary data was not loaded")
             for material in sibc:
-                if material.index not in self.material_map.mesh.boundaries.values:
+                if material.index not in np.stack(MPI.COMM_WORLD.allgather(
+                        np.unique(self.material_map.mesh.boundaries.values))):
                     raise ValueError(f"No boundary data with index {material.index}")
 
             ds = ufl.Measure('ds', domain=self.material_map.mesh.mesh,

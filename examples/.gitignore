@@ -1,2 +1,5 @@
 # IW2D output files
 *.dat
+# Plots
+*.png
+*.pdf

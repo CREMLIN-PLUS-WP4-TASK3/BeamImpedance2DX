@@ -1,5 +1,6 @@
 """Solution definition."""
 
+from binascii import crc32
 import logging
 import dolfinx
 import ufl
@@ -21,7 +22,8 @@ class Solution():
 
     def __init__(self, material_map, H1_order=1, Hcurl_order=1, logger_name=None):
         """Initialize."""
-        self.logger = logging.getLogger(logger_name if logger_name is not None else f"{__name__}_{id(self)}")
+        self.logger = logging.getLogger(logger_name if logger_name is not None
+                                        else f"{type(self).__name__}_{crc32(str(id(self)).encode()):x}")
         # Mesh and materials
         self.material_map = material_map
         self.mesh = material_map.mesh
@@ -72,6 +74,8 @@ class Solution():
         self.q = 0.0
         # Dipole moment
         self.dm = 0.0
+        # Quadrupole moment
+        self.qm = 0.0
         # get_z attributes
         self.__sibc_hash = None
         self.__source_hash = None
@@ -182,7 +186,7 @@ class Solution():
                 r"""
                 $$
                 \underline{Z}_\perp(\omega)
-                =-\frac{\beta c}{(q d_r)^2\omega}
+                =-\frac{\beta c}{d_r^2\omega}
                 \int_{\Omega}{\vec{E} \vec{J}_\perp^* \delta \;d\Omega}
                 $$
                 """
@@ -191,7 +195,17 @@ class Solution():
                 Zre = np.real(val)
                 Zim = np.imag(val)
             elif self.source_function == SourceFunction.QUADRUPOLE:
-                raise NotImplementedError("Not implemented")
+                r"""
+                $$
+                \underline{Z}_\perp(\omega)
+                =-\frac{\beta c}{d_r^2\omega}
+                \int_{\Omega}{\vec{E} \vec{J}_\perp^* \delta \;d\Omega}
+                $$
+                """
+                val = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / self.qm**2 / self._omega *
+                                                  ufl.inner(E_z, ufl.conj(self.Js)) * dx)
+                Zre = np.real(val)
+                Zim = np.imag(val)
             else:
                 raise AttributeError("Unknown source function")
         else:
@@ -215,27 +229,34 @@ class Solution():
                 r"""
                 $$
                 \underline{Z}_\perp(\omega)
-                =-\frac{\beta c}{(q d_r)^2\omega}\left(
+                =-\frac{\beta c}{d_r^2\omega}\left(
                 \int_{\Omega}{\vec{E}^\Re \vec{J}_\perp^\Re \delta \;d\Omega}
                 +j\int_{\Omega}{\vec{E}^\Im \vec{J}_\perp^\Re \delta \;d\Omega}
                 \right)
                 $$
                 """
-                Zre = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / self.dm**2 / self._omega *
+                Zre = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / self.dm2**2 / self._omega *
                                                   ufl.inner(E_z_re, self.Js) * dx)
-                Zim = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / self.dm**2 / self._omega *
+                Zim = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / self.dm2**2 / self._omega *
                                                   ufl.inner(E_z_im, self.Js) * dx)
             elif self.source_function == SourceFunction.QUADRUPOLE:
-                raise NotImplementedError("Not implemented")
+                r"""
+                $$
+                \underline{Z}_\perp(\omega)
+                =-\frac{\beta c}{d_r^2\omega}\left(
+                \int_{\Omega}{\vec{E}^\Re \vec{J}_\perp^\Re \delta \;d\Omega}
+                +j\int_{\Omega}{\vec{E}^\Im \vec{J}_\perp^\Re \delta \;d\Omega}
+                \right)
+                $$
+                """
+                Zre = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / self.qm**2 / self._omega *
+                                                  ufl.inner(E_z_re, self.Js) * dx)
+                Zim = dolfinx.fem.assemble_scalar(-self._beta * self.c0 / self.qm**2 / self._omega *
+                                                  ufl.inner(E_z_im, self.Js) * dx)
             else:
                 raise AttributeError("Unknown source function")
-        _Zre = MPI.COMM_WORLD.gather(Zre)
-        _Zim = MPI.COMM_WORLD.gather(Zim)
-        if MPI.COMM_WORLD.rank == 0:
-            Zre = np.sum(_Zre)
-            Zim = np.sum(_Zim)
-        Zre = MPI.COMM_WORLD.bcast(Zre, root=0)
-        Zim = MPI.COMM_WORLD.bcast(Zim, root=0)
+        Zre = MPI.COMM_WORLD.allreduce(Zre)
+        Zim = MPI.COMM_WORLD.allreduce(Zim)
 
         return (Zre, Zim)
 
@@ -246,6 +267,7 @@ class Solution():
         if (beta is None and gamma is None) or (beta is not None and gamma is not None):
             raise AttributeError("Must supply either beta or gamma value")
         elif gamma is not None:
+            # $\beta = \sqrt{1-\gamma^{-2}}$
             beta = np.sqrt(1 - 1 / (gamma**2))
         if self.__Js_solver is None or self.__source_hash != hash((source_function, rotation)):
             self.__Js_solver = Js(self, rotation=rotation,
@@ -264,7 +286,12 @@ class Solution():
         output = np.zeros((f.size, 3))
         for i, f in enumerate(f):
             if MPI.COMM_WORLD.rank == 0:
-                self.logger.info(f"Solving for f={f:.2e}, β={beta:.2f}, γ={1/np.sqrt(1-beta**2):.2f}")
+                if beta == 1:
+                    gamma = "Inf"
+                else:
+                    # $\gamma = \frac{1}{\sqrt{1-\beta^2}}$
+                    gamma = 1/np.sqrt(1-beta**2)
+                self.logger.info(f"Solving for f={f:.2e}, β={beta:.2f}, γ={gamma:.2f}")
             self.f = f
             if self._Js_stale:
                 self.__Js_solver.solve(petsc_options=petsc_options)

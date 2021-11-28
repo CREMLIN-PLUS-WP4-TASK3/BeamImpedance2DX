@@ -90,6 +90,11 @@ class MaterialMapBase():
             cells = mesh.subdomains.indices[mesh.subdomains.values == self.beam_index]
             loc.setValues(cells, np.full(cells.size, 1))
 
+        self.mpiproc = dolfinx.Function(self.V)
+        self.mpiproc.name = "MPI_processor"
+        with self.mpiproc.vector.localForm() as loc:
+            loc.set(MPI.COMM_WORLD.rank)
+
         (minx, miny), (maxx, maxy) = self.mesh.get_limits(self.beam_index)
         if round_check:
             if not np.isclose(maxx - minx, maxy - miny, atol=(maxx - minx) / 200) or\
@@ -156,7 +161,7 @@ class MaterialMapScalar(MaterialMapBase):
     def __init__(self, mesh, materials, f=1e5, beam_subdomain_index=1, round_check=True):
         """Initialize."""
         super().__init__(mesh, materials, f, beam_subdomain_index, round_check=round_check)
-        self._xdmf_write_all_list = ["beam", "eps_r", "eps", "sigma", "mu_r_re",
+        self._xdmf_write_all_list = ["beam", "mpiproc", "eps_r", "eps", "sigma", "mu_r_re",
                                      "mu_r_im", "mu_re", "mu_im", "nu_re", "nu_im"]
 
         for n in ["eps_r", "mu_r_re"]:
@@ -241,7 +246,7 @@ class MaterialMapComplex(MaterialMapBase):
     def __init__(self, mesh, materials, f=1e5, beam_subdomain_index=1, round_check=True):
         """Initialize."""
         super().__init__(mesh, materials, f, beam_subdomain_index, round_check=round_check)
-        self._xdmf_write_all_list = ["beam", "eps_r", "eps", "sigma", "mu_r_re", "mu_r_im", "mu"]
+        self._xdmf_write_all_list = ["beam", "mpiproc", "eps_r", "eps", "sigma", "mu_r_re", "mu_r_im", "mu"]
 
         for n in ["eps_r", "sigma", "mu_r_re", "mu_r_im"]:
             setattr(self, n, dolfinx.Function(self.V))
