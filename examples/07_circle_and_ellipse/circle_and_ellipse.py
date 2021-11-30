@@ -42,6 +42,6 @@ for (solution, name, f_range, sibc_boundaries), source_function, rotation \
                 (ellipse_sibc_solution, "ellipse_sibc", np.logspace(6, 12, num=100), [wall])],
                [bi2d.SourceFunction.MONOPOLE, bi2d.SourceFunction.DIPOLE],
                [0, np.pi/2]):
-    data = solution.get_z(f_range, beta=0.999999, rotation=rotation ,source_function=source_function)
+    data = solution.get_z(f_range, beta=0.999999, rotation=rotation, source_function=source_function)
     if MPI.COMM_WORLD.rank == 0:
         np.savetxt(f"{source_function.name.lower()}_{name}_{rotation*180/np.pi:.0f}.dat", data)
