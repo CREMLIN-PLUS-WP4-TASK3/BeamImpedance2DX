@@ -44,6 +44,14 @@ mpirun --host localhost:$(nproc) -n 4 python3 script.py
 ```
 In this example number of used CPUs is `4`.
 
+Note that parallel read/write of mesh and fields is supported. However, if you wish to write, for example, numpy arrays
+to file, you'll need to guard file access command from parallel writes like so:
+```python
+data = solution.get_z(np.logspace(5, 12, num=20), beta=0.999, source_function=bi2d.SourceFunction.DIPOLE)
+if MPI.COMM_WORLD.rank == 0:
+    np.savetxt("output.dat", data)
+```
+
 # Workflow
 
 Basic workflow is this:
