@@ -1811,7 +1811,7 @@ $$
 -\int_{\partial\Omega}{v^\Re\left(\frac{\nu^\Im}{\delta}{E}_z^\Re\right)\;dS}
 $$
 
-<!-- 16! -->
+<!-- 16 -->
 $$
 -\int_{\partial\Omega}{v^\Im\left(\nu^\Re\hat{\operatorname{A}}{E}_z^\Im\right)\;dS}
 =\int_{\partial\Omega}{v^\Im\left(\frac{\nu^\Re}{\delta}{E}_z^\Im\right)\;dS}

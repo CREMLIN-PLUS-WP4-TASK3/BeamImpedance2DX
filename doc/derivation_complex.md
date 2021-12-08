@@ -779,7 +779,7 @@ $$\hat{S}_{z\perp}
 \left(\frac{1}{\mu}\hat{\operatorname{Z}}\underline{\vec{E}}_\perp\right)\;d\Omega}$$
 
 <!-- 4 -->
-$$\hat{S}_{zz}\underline{E}_z
+$$\hat{S}_{zz}
 =\int_\Omega{\left(\hat{\operatorname{A}} v\right)
 \left(\frac{1}{\mu}\hat{\operatorname{A}}\underline{E}_z\right)\;d\Omega}$$
 

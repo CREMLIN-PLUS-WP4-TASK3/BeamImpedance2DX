@@ -18,7 +18,7 @@ docker build --tag bi2d -f bi2d_lab.dockerfile  .
 
 Jupyter server may be started with the following line
 ```bash
-docker run --init --rm --env OMP_NUM_THREADS=$(nproc) -p 8888:8888 -v "$(pwd)":/root/shared -w /root/shared bi2d
+docker run --init --rm -p 8888:8888 -v "$(pwd)":/root/shared -w /root/shared bi2d
 ```
 
 Real and complex numbers can be selected in kernel selection box.
@@ -26,26 +26,23 @@ Real and complex numbers can be selected in kernel selection box.
 ## Shell with real numbers
 To run script named `script.py`
 ```bash
-docker run --init --rm --env OMP_NUM_THREADS=$(nproc) -v "$(pwd)":/root/shared -w /root/shared dolfinx/dolfinx python3 script.py
+docker run --init --rm -v "$(pwd)":/root/shared -w /root/shared dolfinx/dolfinx python3 script.py
 ```
 
 ## Shell with complex numbers
 To run script named `script.py`
 ```bash
-docker run -v $(pwd):/root/shared -w "/root/shared" --rm --env OMP_NUM_THREADS=$(nproc) --env LD_LIBRARY_PATH=/usr/local/dolfinx-complex/lib --env PATH=/usr/local/dolfinx-complex/bin:/usr/local/gmsh-4.6.0-Linux64-sdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --env PKG_CONFIG_PATH=/usr/local/dolfinx-complex/lib/pkgconfig --env PETSC_ARCH=linux-gnu-complex-32 --env PYTHONPATH=/usr/local/dolfinx-complex/lib/python3.8/dist-packages dolfinx/dolfinx python3 script.py
+docker run -v $(pwd):/root/shared -w "/root/shared" --rm --env LD_LIBRARY_PATH=/usr/local/dolfinx-complex/lib --env PATH=/usr/local/dolfinx-complex/bin:/usr/local/gmsh-4.6.0-Linux64-sdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --env PKG_CONFIG_PATH=/usr/local/dolfinx-complex/lib/pkgconfig --env PETSC_ARCH=linux-gnu-complex-32 --env PYTHONPATH=/usr/local/dolfinx-complex/lib/python3.8/dist-packages dolfinx/dolfinx python3 script.py
 ```
 
-## Shell with real numbers and MPI
-To run script named `script.py`. It's important to run MPI with `OMP_NUM_THREADS=1`.
-```bash
-docker run --init --rm --env OMP_NUM_THREADS=1 -v "$(pwd)":/root/shared -w /root/shared dolfinx/dolfinx mpirun --host localhost:$(nproc) -n $(nproc) python3 script.py
-```
+# Parallel processing
 
-## Shell with complex numbers and MPI
-To run script named `script.py`. It's important to run MPI with `OMP_NUM_THREADS=1`.
+Calculations may be done in parallel using MPI. Assuming proper Python environment configuration to run script in
+parallel use command
 ```bash
-docker run -v $(pwd):/root/shared -w "/root/shared" --rm --env OMP_NUM_THREADS=1 --env LD_LIBRARY_PATH=/usr/local/dolfinx-complex/lib --env PATH=/usr/local/dolfinx-complex/bin:/usr/local/gmsh-4.6.0-Linux64-sdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --env PKG_CONFIG_PATH=/usr/local/dolfinx-complex/lib/pkgconfig --env PETSC_ARCH=linux-gnu-complex-32 --env PYTHONPATH=/usr/local/dolfinx-complex/lib/python3.8/dist-packages dolfinx/dolfinx mpirun --host localhost:$(nproc) -n $(nproc) python3 script.py
+mpirun --host localhost:$(nproc) -n 4 python3 script.py
 ```
+In this example number of used CPUs is `4`.
 
 # Workflow
 

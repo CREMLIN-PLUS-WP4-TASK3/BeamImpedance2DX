@@ -11,7 +11,7 @@ r3b = 0.015;
 r3s = 0.011;
 r4 = 0.05;
 
-DefineConstant[geomtype={0, Choices{0="sibc", 1="metal"}, Name"Geometry type"}];
+DefineConstant[geomtype={0, Choices{0="vacuum", 1="vacuum-metal", 2="vacuum-metal-vacuum"}, Name"Geometry type"}];
 
 Macro NewCircle
     // Input: newcircle_center - center point of a circle
@@ -66,17 +66,17 @@ ll1 = newcircle_ll;
 s1 = news; Surface(s1) = {ll1};
 Physical Surface(1) = {s1}; // beam
 
-newcircle_r = r1+0.001;
-newcircletransfinite = 50;
+newcircle_r = r1*1.1;
+newcircletransfinite = 70;
 Call NewCircle;
 Call NewCircleTransfinite;
 ll1_2 = newcircle_ll;
 s1_2 = news; Surface(s1_2) = {ll1_2,ll1};
 
 newellipse_center = newcircle_center;
-newellipse_rs = r2s-0.001;
-newellipse_rb = r2b-0.001;
-newellipsetransfinite = 150;
+newellipse_rs = r2s*0.95;
+newellipse_rb = r2b*0.95;
+newellipsetransfinite = 200;
 Call NewEllipse;
 Call NewEllipseTransfinite;
 ll2_2 = newellipse_ll;
@@ -84,14 +84,14 @@ s2_2 = news; Surface(s2_2) = {ll2_2,ll1_2};
 
 newellipse_rs = r2s;
 newellipse_rb = r2b;
-newellipsetransfinite = 1000;
+newellipsetransfinite = 3000;
 Call NewEllipse;
 Call NewEllipseTransfinite;
 ll2 = newellipse_ll;
 s2 = news; Surface(s2) = {ll2,ll2_2};
 Physical Surface(2) = {s2,s1_2,s2_2}; // inner vacuum
 
-If(geomtype)
+If(geomtype>0)
 
 newellipse_rs = r3s;
 newellipse_rb = r3b;
@@ -102,8 +102,12 @@ ll3 = newellipse_ll;
 s3 = news; Surface(s3) = {ll3,ll2};
 Physical Surface(3) = {s3}; // metal
 
-newellipse_rs = r3s+0.002;
-newellipse_rb = r3b+0.002;
+EndIf
+
+If(geomtype>1)
+
+newellipse_rs = r3s*1.05;
+newellipse_rb = r3b*1.05;
 newellipsetransfinite = 150;
 Call NewEllipse;
 Call NewEllipseTransfinite;

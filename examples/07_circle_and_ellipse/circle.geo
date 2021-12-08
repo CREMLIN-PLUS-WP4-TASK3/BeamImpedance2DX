@@ -9,7 +9,7 @@ r2 = 0.010;
 r3 = 0.011;
 r4 = 0.05;
 
-DefineConstant[geomtype={0, Choices{0="sibc", 1="metal"}, Name"Geometry type"}];
+DefineConstant[geomtype={0, Choices{0="vacuum", 1="vacuum-metal", 2="vacuum-metal-vacuum"}, Name"Geometry type"}];
 
 Macro NewCircle
     // Input: newcircle_center - center point of a circle
@@ -42,39 +42,43 @@ ll1 = newcircle_ll;
 s1 = news; Surface(s1) = {ll1};
 Physical Surface(1) = {s1}; // beam
 
-newcircle_r = r1+0.001;
-newcircletransfinite = 50;
+newcircle_r = r1*1.1;
+newcircletransfinite = 70;
 Call NewCircle;
 Call NewCircleTransfinite;
 ll1_2 = newcircle_ll;
 s1_2 = news; Surface(s1_2) = {ll1_2,ll1};
 
-newcircle_r = r2-0.001;
-newcircletransfinite = 150;
+newcircle_r = r2*0.95;
+newcircletransfinite = 200;
 Call NewCircle;
 Call NewCircleTransfinite;
 ll2_2 = newcircle_ll;
 s2_2 = news; Surface(s2_2) = {ll2_2,ll1_2};
 
 newcircle_r = r2;
-newcircletransfinite = 1000;
+newcircletransfinite = 3000;
 Call NewCircle;
 Call NewCircleTransfinite;
 ll2 = newcircle_ll;
 s2 = news; Surface(s2) = {ll2,ll2_2};
 Physical Surface(2) = {s2,s1_2,s2_2}; // inner vacuum
 
-If(geomtype)
+If(geomtype>0)
 
 newcircle_r = r3;
-newcircletransfinite = 1000;
+newcircletransfinite = 3000;
 Call NewCircle;
 Call NewCircleTransfinite;
 ll3 = newcircle_ll;
 s3 = news; Surface(s3) = {ll3,ll2};
 Physical Surface(3) = {s3}; // metal
 
-newcircle_r = r3+0.002;
+EndIf
+
+If(geomtype>1)
+
+newcircle_r = r3*1.05;
 newcircletransfinite = 150;
 Call NewCircle;
 Call NewCircleTransfinite;

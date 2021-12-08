@@ -17,9 +17,9 @@ wall.index = -1
 m_v = bi2d.Mesh("vacuum.xdmf")
 m_vm = bi2d.Mesh("vacuum_metal.xdmf")
 m_vmv = bi2d.Mesh("vacuum_metal_vacuum.xdmf")
-mc_v = bi2d.MaterialMap(m_m, [beam, vacuum])
-mc_vm = bi2d.MaterialMap(m_mv, [beam, vacuum, steel])
-mc_vmv = bi2d.MaterialMap(m_mvm, [beam, vacuum, steel, outer_vacuum])
+mc_v = bi2d.MaterialMap(m_v, [beam, vacuum])
+mc_vm = bi2d.MaterialMap(m_vm, [beam, vacuum, steel])
+mc_vmv = bi2d.MaterialMap(m_vmv, [beam, vacuum, steel, outer_vacuum])
 
 # Configure solution
 solution_v = bi2d.Solution(mc_v, Hcurl_order=2, H1_order=2)
